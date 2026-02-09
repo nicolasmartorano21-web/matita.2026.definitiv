@@ -14,6 +14,7 @@ const Catalog: React.FC<CatalogProps> = ({ category }) => {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'recent' | 'priceLow' | 'priceHigh' | 'name'>('recent');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,15 +54,22 @@ const Catalog: React.FC<CatalogProps> = ({ category }) => {
     fetchProducts();
   }, [supabase]);
 
-  const filteredProducts = useMemo(() => {
-    return products.filter(p => {
+  const sortedAndFilteredProducts = useMemo(() => {
+    let filtered = products.filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
       if (category === 'Favorites') return matchesSearch && favorites.includes(p.id);
       if (category === 'Catalog') return matchesSearch;
       if (category === 'Ofertas') return matchesSearch && (p.oldPrice !== null || p.category === 'Ofertas');
       return matchesSearch && p.category === category;
     });
-  }, [category, searchTerm, favorites, products]);
+
+    return [...filtered].sort((a, b) => {
+      if (sortBy === 'priceLow') return a.price - b.price;
+      if (sortBy === 'priceHigh') return b.price - a.price;
+      if (sortBy === 'name') return a.name.localeCompare(b.name);
+      return 0; // 'recent' is default by fetch order
+    });
+  }, [category, searchTerm, favorites, products, sortBy]);
 
   const categoryList: {label: string, cat: Category, icon: string}[] = [
     { label: 'Escolar', cat: 'Escolar', icon: '✏️' },
@@ -84,37 +92,33 @@ const Catalog: React.FC<CatalogProps> = ({ category }) => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-32 gap-6 text-center px-6">
-        <div className="text-8xl">🐌</div>
-        <h3 className="text-3xl font-bold text-gray-800">¡Ups! Tu conexión está un poco lenta</h3>
-        <p className="text-xl text-gray-400 max-w-md">{error}</p>
-        <button 
-          onClick={fetchProducts}
-          className="px-10 py-4 matita-gradient-orange text-white rounded-full text-2xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-all"
-        >
-          Reintentar Carga ✨
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-12 animate-fadeIn pb-24">
-      {/* Título Dinámico y Buscador */}
+      {/* Título y Buscador */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-10">
         <h2 className="text-6xl md:text-8xl font-matita font-bold text-[#f6a118] drop-shadow-sm">
           {category === 'Catalog' ? 'Mundo Matita' : category}
         </h2>
-        <div className="relative max-w-2xl w-full">
-          <input
-            type="text"
-            placeholder="¿Qué buscamos hoy? 🔍"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-10 py-6 rounded-[2.5rem] border-4 border-[#fadb31] text-2xl font-matita shadow-xl focus:ring-[15px] focus:ring-[#fadb31]/10 outline-none transition-all placeholder:text-gray-200"
-          />
+        <div className="flex flex-col md:flex-row gap-4 w-full max-w-4xl">
+          <div className="relative flex-grow">
+            <input
+              type="text"
+              placeholder="¿Qué buscamos hoy? 🔍"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-8 py-5 rounded-[2rem] border-4 border-[#fadb31] text-xl font-matita shadow-lg focus:ring-[15px] focus:ring-[#fadb31]/10 outline-none transition-all placeholder:text-gray-200"
+            />
+          </div>
+          <select 
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="px-6 py-4 rounded-[2rem] border-4 border-[#fadb31]/30 text-lg font-bold text-gray-400 bg-white outline-none cursor-pointer hover:border-[#fadb31] transition-colors"
+          >
+            <option value="recent">Más recientes ✨</option>
+            <option value="priceLow">Menor precio ⬇️</option>
+            <option value="priceHigh">Mayor precio ⬆️</option>
+            <option value="name">Nombre A-Z 📝</option>
+          </select>
         </div>
       </div>
 
@@ -150,17 +154,42 @@ const Catalog: React.FC<CatalogProps> = ({ category }) => {
 
       {/* Grilla de Productos */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-12">
-        {filteredProducts.map(product => (
+        {sortedAndFilteredProducts.map(product => (
           <ProductCard key={product.id} product={product} />
         ))}
       </div>
 
+      {/* Sección de Comunidad / Testimonios */}
+      {category === 'Catalog' && (
+        <div className="mt-32 py-20 bg-white rounded-[4rem] shadow-xl border-8 border-[#fef9eb] relative overflow-hidden text-center">
+           <div className="absolute top-0 left-0 w-full h-2 matita-gradient-orange opacity-20"></div>
+           <h3 className="text-5xl font-logo text-[#ea7e9c] mb-12">Lo que dicen en el Club ✨</h3>
+           <div className="grid md:grid-cols-3 gap-12 px-10">
+              <div className="space-y-4">
+                <div className="text-4xl">💖</div>
+                <p className="text-xl text-gray-500 italic">"Los productos más lindos de La Calera. Cada detalle es amor puro."</p>
+                <p className="font-bold text-[#f6a118]">- Sofi G.</p>
+              </div>
+              <div className="space-y-4 border-x-2 border-[#fef9eb] px-10">
+                <div className="text-4xl">⭐</div>
+                <p className="text-xl text-gray-500 italic">"Canjeé mis puntos por un cupón y me salvó el regalo de cumple."</p>
+                <p className="font-bold text-[#f6a118]">- Martu P.</p>
+              </div>
+              <div className="space-y-4">
+                <div className="text-4xl">🖋️</div>
+                <p className="text-xl text-gray-500 italic">"Calidad increíble y la atención por WhatsApp es súper rápida."</p>
+                <p className="font-bold text-[#f6a118]">- Facu L.</p>
+              </div>
+           </div>
+        </div>
+      )}
+
       {/* Empty State */}
-      {filteredProducts.length === 0 && (
-        <div className="text-center py-40 bg-white/40 rounded-[4rem] border-4 border-dashed border-white shadow-inner flex flex-col items-center">
+      {sortedAndFilteredProducts.length === 0 && (
+        <div className="text-center py-40 bg-white/40 rounded-[4rem] border-4 border-dashed border-white flex flex-col items-center">
           <div className="text-8xl mb-6 grayscale opacity-20">📦</div>
-          <p className="text-4xl font-matita text-gray-300 italic px-6">"Aún no encontramos tesoros en esta categoría."</p>
-          <button onClick={() => navigate('/catalog')} className="mt-8 px-10 py-4 bg-[#fadb31] text-white rounded-full text-xl font-bold shadow-md">Ver Todo el Mundo Matita</button>
+          <p className="text-4xl font-matita text-gray-300 italic px-6">"Aún no encontramos tesoros en esta búsqueda."</p>
+          <button onClick={() => {setSearchTerm(''); setSortBy('recent')}} className="mt-8 px-10 py-4 bg-[#fadb31] text-white rounded-full text-xl font-bold shadow-md">Limpiar Filtros</button>
         </div>
       )}
     </div>
