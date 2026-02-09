@@ -11,7 +11,6 @@ import Ideas from './components/Ideas';
 import Contact from './components/Contact';
 import { Product, CartItem, User, Category } from './types';
 
-// DATOS DEL PROYECTO SUPABASE (jjgvfzaxcxfgyziikybd)
 const SUPABASE_URL = 'https://jjgvfzaxcxfgyziikybd.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_hNWUKMZrLljdMaVN8NgWcw_b9UR3nVS';
 
@@ -41,12 +40,22 @@ export const useApp = () => {
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [loadingSession, setLoadingSession] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [logoUrl, setLogoUrl] = useState<string>("https://i.ibb.co/L6v3X8G/matita-logo.png");
 
   useEffect(() => {
     const initApp = async () => {
+      setLoadingSession(true);
+      
+      // 1. Intentar recuperar usuario persistido (Invitado o Auth)
+      const savedUser = localStorage.getItem('matita_persisted_user');
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      }
+
+      // 2. Verificar sesión real de Supabase
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
@@ -57,17 +66,20 @@ const App: React.FC = () => {
           .single();
         
         if (userData) {
-          setUser({
+          const fullUser = {
             id: userData.id,
             name: userData.name,
             email: userData.email,
             points: userData.points,
             isAdmin: userData.is_admin,
             isSocio: userData.is_socio,
-          });
+          };
+          setUser(fullUser);
+          localStorage.setItem('matita_persisted_user', JSON.stringify(fullUser));
         }
       }
 
+      // 3. Cargar Favoritos y Config
       const savedFavs = localStorage.getItem('matita_favs');
       if (savedFavs) setFavorites(JSON.parse(savedFavs));
       
@@ -78,6 +90,9 @@ const App: React.FC = () => {
         .single();
       
       if (configData) setLogoUrl(configData.logo_url);
+      
+      // Pequeño delay para que la transición sea suave
+      setTimeout(() => setLoadingSession(false), 800);
     };
 
     initApp();
@@ -91,17 +106,20 @@ const App: React.FC = () => {
           .single();
         
         if (userData) {
-          setUser({
+          const fullUser = {
             id: userData.id,
             name: userData.name,
             email: userData.email,
             points: userData.points,
             isAdmin: userData.is_admin,
             isSocio: userData.is_socio,
-          });
+          };
+          setUser(fullUser);
+          localStorage.setItem('matita_persisted_user', JSON.stringify(fullUser));
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
+        localStorage.removeItem('matita_persisted_user');
         clearCart();
       }
     });
@@ -131,6 +149,22 @@ const App: React.FC = () => {
     );
   };
 
+  // Pantalla de Carga "Splash"
+  if (loadingSession) {
+    return (
+      <div className="min-h-screen bg-[#fef9eb] flex flex-col items-center justify-center gap-8 font-matita animate-fadeIn">
+        <div className="relative">
+          <div className="w-32 h-32 border-t-4 border-[#f6a118] rounded-full animate-spin absolute inset-0"></div>
+          <img src={logoUrl} className="w-32 h-32 object-contain p-4 relative z-10 animate-pulse" alt="Cargando" />
+        </div>
+        <div className="text-center">
+          <h2 className="text-4xl font-logo text-[#f6a118] animate-bounce">Matita</h2>
+          <p className="text-gray-400 font-bold tracking-widest uppercase text-sm">Abriendo la tienda...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <AppContext.Provider value={{ 
       user, setUser, cart, addToCart, removeFromCart, clearCart, 
@@ -151,7 +185,6 @@ const App: React.FC = () => {
               <Route path="novelties" element={<Catalog category="Novedades" />} />
               <Route path="ofertas" element={<Catalog category="Ofertas" />} />
               <Route path="favorites" element={<Catalog category="Favorites" />} />
-              {/* Ahora permitimos entrar al club, la lógica interna maneja si es socio o no */}
               <Route path="club" element={<ClubView />} />
               <Route path="ideas" element={<Ideas />} />
               <Route path="contact" element={<Contact />} />
