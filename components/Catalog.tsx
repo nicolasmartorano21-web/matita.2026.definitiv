@@ -15,14 +15,18 @@ const Catalog: React.FC<CatalogProps> = ({ category }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
-      const { data } = await supabase
+  const fetchProducts = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: fetchError } = await supabase
         .from('products')
         .select('*')
         .order('created_at', { ascending: false });
+      
+      if (fetchError) throw fetchError;
       
       if (data) {
         setProducts(data.map((p: any) => ({
@@ -37,9 +41,15 @@ const Catalog: React.FC<CatalogProps> = ({ category }) => {
           colors: p.colors || []
         })));
       }
+    } catch (err: any) {
+      console.error("Error cargando productos:", err);
+      setError("No pudimos conectar con la tienda. Revisa tu internet.");
+    } finally {
       setLoading(false);
-    };
+    }
+  };
 
+  useEffect(() => {
     fetchProducts();
   }, [supabase]);
 
@@ -65,8 +75,27 @@ const Catalog: React.FC<CatalogProps> = ({ category }) => {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-40 gap-8">
-        <div className="w-24 h-24 border-8 border-[#fadb31] border-t-transparent rounded-full animate-spin shadow-lg"></div>
-        <p className="text-[#f6a118] font-bold animate-pulse text-4xl">Buscando tesoros... ✨</p>
+        <div className="relative w-24 h-24">
+          <div className="absolute inset-0 border-8 border-gray-100 rounded-full"></div>
+          <div className="absolute inset-0 border-8 border-transparent border-t-[#fadb31] rounded-full animate-spin"></div>
+        </div>
+        <p className="text-[#f6a118] font-bold animate-pulse text-3xl text-center px-6">Abriendo el mundo Matita... ✨</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 gap-6 text-center px-6">
+        <div className="text-8xl">🐌</div>
+        <h3 className="text-3xl font-bold text-gray-800">¡Ups! Tu conexión está un poco lenta</h3>
+        <p className="text-xl text-gray-400 max-w-md">{error}</p>
+        <button 
+          onClick={fetchProducts}
+          className="px-10 py-4 matita-gradient-orange text-white rounded-full text-2xl font-bold shadow-lg hover:scale-105 active:scale-95 transition-all"
+        >
+          Reintentar Carga ✨
+        </button>
       </div>
     );
   }
@@ -81,7 +110,7 @@ const Catalog: React.FC<CatalogProps> = ({ category }) => {
         <div className="relative max-w-2xl w-full">
           <input
             type="text"
-            placeholder="¿Qué buscas hoy? 🔍"
+            placeholder="¿Qué buscamos hoy? 🔍"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full px-10 py-6 rounded-[2.5rem] border-4 border-[#fadb31] text-2xl font-matita shadow-xl focus:ring-[15px] focus:ring-[#fadb31]/10 outline-none transition-all placeholder:text-gray-200"
@@ -89,42 +118,33 @@ const Catalog: React.FC<CatalogProps> = ({ category }) => {
         </div>
       </div>
 
-      {/* BARRA DE CATEGORÍAS - DESLIZABLE */}
+      {/* BARRA DE CATEGORÍAS */}
       <div className="w-full relative py-2">
         <div className="flex overflow-x-auto gap-6 py-4 px-2 scrollbar-hide snap-x items-center -mx-4">
-           {/* Botón TODO */}
            <button 
              onClick={() => navigate('/catalog')}
-             className={`snap-start px-10 py-5 rounded-full text-3xl font-bold transition-all whitespace-nowrap shadow-xl border-4 flex items-center gap-4 ${
+             className={`snap-start px-8 py-4 rounded-full text-2xl font-bold transition-all whitespace-nowrap shadow-md border-2 flex items-center gap-3 ${
                category === 'Catalog' 
-               ? 'matita-gradient-orange text-white border-white scale-110' 
-               : 'bg-white text-gray-400 border-transparent hover:border-[#fadb31] hover:text-[#f6a118]'
+               ? 'matita-gradient-orange text-white border-white scale-105' 
+               : 'bg-white text-gray-400 border-transparent hover:border-[#fadb31]'
              }`}
            >
-             <span className="text-4xl">🌈</span> Todo
+             <span className="text-3xl">🌈</span> Todo
            </button>
 
-           {/* Categorías Iteradas */}
            {categoryList.map(item => (
              <button 
                key={item.cat}
                onClick={() => navigate(`/${item.cat.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`)}
-               className={`snap-start px-10 py-5 rounded-full text-3xl font-bold transition-all whitespace-nowrap shadow-xl border-4 flex items-center gap-4 ${
+               className={`snap-start px-8 py-4 rounded-full text-2xl font-bold transition-all whitespace-nowrap shadow-md border-2 flex items-center gap-3 ${
                  category === item.cat 
-                 ? 'matita-gradient-orange text-white border-white scale-110' 
-                 : 'bg-white text-gray-400 border-transparent hover:border-[#fadb31] hover:text-[#f6a118]'
+                 ? 'matita-gradient-orange text-white border-white scale-105' 
+                 : 'bg-white text-gray-400 border-transparent hover:border-[#fadb31]'
                }`}
              >
-               <span className="text-4xl">{item.icon}</span> {item.label}
+               <span className="text-3xl">{item.icon}</span> {item.label}
              </button>
            ))}
-        </div>
-        
-        {/* Guía Visual Slider Móvil */}
-        <div className="md:hidden flex justify-center mt-4">
-           <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div className="w-1/2 h-full bg-[#fadb31] rounded-full animate-[shimmer_2s_infinite]"></div>
-           </div>
         </div>
       </div>
 
@@ -137,10 +157,10 @@ const Catalog: React.FC<CatalogProps> = ({ category }) => {
 
       {/* Empty State */}
       {filteredProducts.length === 0 && (
-        <div className="text-center py-48 bg-white/40 rounded-[5rem] border-8 border-dashed border-white shadow-inner flex flex-col items-center">
-          <div className="text-9xl mb-8 grayscale opacity-20">📦</div>
-          <p className="text-5xl font-matita text-gray-300 italic">"No hay tesoros aquí... por ahora."</p>
-          <button onClick={() => navigate('/catalog')} className="mt-10 px-12 py-5 bg-[#fadb31] text-white rounded-full text-2xl font-bold shadow-lg">Ver Todo</button>
+        <div className="text-center py-40 bg-white/40 rounded-[4rem] border-4 border-dashed border-white shadow-inner flex flex-col items-center">
+          <div className="text-8xl mb-6 grayscale opacity-20">📦</div>
+          <p className="text-4xl font-matita text-gray-300 italic px-6">"Aún no encontramos tesoros en esta categoría."</p>
+          <button onClick={() => navigate('/catalog')} className="mt-8 px-10 py-4 bg-[#fadb31] text-white rounded-full text-xl font-bold shadow-md">Ver Todo el Mundo Matita</button>
         </div>
       )}
     </div>
