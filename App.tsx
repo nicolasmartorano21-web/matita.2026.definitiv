@@ -1,5 +1,6 @@
 
-import React, { useState, useEffect, createContext, useContext } from 'react';
+
+import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import Layout from './components/Layout';
@@ -45,33 +46,32 @@ const App: React.FC = () => {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [logoUrl, setLogoUrl] = useState<string>("https://i.ibb.co/L6v3X8G/matita-logo.png");
 
+  // Función para limpiar carrito
+  const clearCart = useCallback(() => setCart([]), []);
+
   useEffect(() => {
     const initApp = async () => {
-      // Iniciamos carga
-      setLoadingSession(true);
+      // 1. Cargar datos inmediatos de LocalStorage para evitar el loader si ya hay sesión
+      const savedUser = localStorage.getItem('matita_persisted_user');
+      const savedFavs = localStorage.getItem('matita_favs');
       
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+        // Si tenemos usuario guardado, podemos quitar el loader más rápido
+        setLoadingSession(false);
+      }
+
+      if (savedFavs) setFavorites(JSON.parse(savedFavs));
+
       try {
-        // 1. Recuperación inmediata de caché para velocidad en móviles
-        const savedUser = localStorage.getItem('matita_persisted_user');
-        if (savedUser) {
-          setUser(JSON.parse(savedUser));
-        }
-
-        const savedFavs = localStorage.getItem('matita_favs');
-        if (savedFavs) setFavorites(JSON.parse(savedFavs));
-
-        // 2. Verificación de sesión real de Supabase (con tiempo límite)
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000));
-
-        // Intentamos obtener la sesión, pero no bloqueamos la app más de 3 segundos
-        const sessionResult: any = await Promise.race([sessionPromise, timeoutPromise]).catch(() => null);
+        // 2. Verificar sesión real de Supabase en segundo plano
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (sessionResult?.data?.session?.user) {
+        if (session?.user) {
           const { data: userData } = await supabase
             .from('users')
             .select('*')
-            .eq('id', sessionResult.data.session.user.id)
+            .eq('id', session.user.id)
             .single();
           
           if (userData) {
@@ -98,16 +98,15 @@ const App: React.FC = () => {
         if (configData) setLogoUrl(configData.logo_url);
 
       } catch (error) {
-        console.error("Error en el arranque:", error);
+        console.error("Error silencioso en arranque:", error);
       } finally {
-        // Pase lo que pase, quitamos la pantalla de carga para que la web sea usable
-        setTimeout(() => setLoadingSession(false), 500);
+        // Siempre quitar el loader después de un tiempo razonable
+        setLoadingSession(false);
       }
     };
 
     initApp();
 
-    // Listener de cambios de estado (Login/Logout)
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user) {
         const { data: userData } = await supabase
@@ -135,25 +134,15 @@ const App: React.FC = () => {
       }
     });
 
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
+    return () => authListener.subscription.unsubscribe();
+  }, [clearCart]);
 
-  // Guardar favoritos cada vez que cambien
   useEffect(() => {
     localStorage.setItem('matita_favs', JSON.stringify(favorites));
   }, [favorites]);
 
-  const addToCart = (item: CartItem) => {
-    setCart(prev => [...prev, item]);
-  };
-
-  const removeFromCart = (index: number) => {
-    setCart(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const clearCart = () => setCart([]);
+  const addToCart = (item: CartItem) => setCart(prev => [...prev, item]);
+  const removeFromCart = (index: number) => setCart(prev => prev.filter((_, i) => i !== index));
 
   const toggleFavorite = (id: string) => {
     setFavorites(prev => 
@@ -161,24 +150,18 @@ const App: React.FC = () => {
     );
   };
 
-  // Pantalla de Carga "Splash" con diseño mejorado
   if (loadingSession) {
     return (
-      <div className="min-h-screen bg-[#fef9eb] flex flex-col items-center justify-center gap-8 font-matita overflow-hidden">
-        <div className="relative scale-125 md:scale-150">
-          <div className="w-32 h-32 border-[6px] border-[#fadb31]/20 border-t-[#f6a118] rounded-full animate-spin absolute inset-0"></div>
-          <div className="w-32 h-32 flex items-center justify-center relative z-10 animate-float">
-             <img src={logoUrl} className="w-20 h-20 object-contain drop-shadow-xl" alt="Matita Logo" />
+      <div className="min-h-screen bg-[#fef9eb] flex flex-col items-center justify-center gap-6 font-matita">
+        <div className="relative">
+          <div className="w-24 h-24 border-4 border-[#fadb31]/30 border-t-[#f6a118] rounded-full animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-3 h-3 bg-[#ea7e9c] rounded-full animate-ping"></div>
           </div>
         </div>
-        <div className="text-center space-y-2 animate-fadeIn mt-4">
-          <h2 className="text-5xl font-logo text-[#f6a118]">Matita</h2>
-          <div className="flex gap-1 justify-center">
-            <span className="w-2 h-2 bg-[#fadb31] rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-            <span className="w-2 h-2 bg-[#ea7e9c] rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-            <span className="w-2 h-2 bg-[#f6a118] rounded-full animate-bounce"></span>
-          </div>
-          <p className="text-gray-300 font-bold uppercase tracking-[0.3em] text-[10px] mt-4">Preparando la magia</p>
+        <div className="text-center animate-pulse">
+          <h2 className="text-4xl font-logo text-[#f6a118]">Matita</h2>
+          <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Iniciando...</p>
         </div>
       </div>
     );
