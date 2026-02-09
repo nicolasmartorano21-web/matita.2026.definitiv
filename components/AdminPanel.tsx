@@ -4,7 +4,6 @@ import { Product, Category, User, Sale, ColorStock } from '../types';
 import { useApp } from '../App';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 
-// Helper para construir la URL de Cloudinary (Lógica de optimización q_auto, f_auto)
 const getImgUrl = (id: string, w = 600) => {
   if (!id) return "https://via.placeholder.com/600x600?text=Matita";
   if (id.startsWith('data:') || id.startsWith('http')) return id;
@@ -85,7 +84,7 @@ const AdminPanel: React.FC = () => {
   );
 };
 
-// --- COMPONENTE DASHBOARD ---
+// --- DASHBOARD COMPONENT ---
 const Dashboard: React.FC = () => {
   const { supabase } = useApp();
   const [data, setData] = useState<any>({ 
@@ -185,7 +184,7 @@ const Dashboard: React.FC = () => {
   );
 };
 
-// --- COMPONENTE INVENTORY MANAGER ---
+// --- INVENTORY MANAGER COMPONENT ---
 const InventoryManager: React.FC = () => {
   const { supabase } = useApp();
   const [products, setProducts] = useState<Product[]>([]);
@@ -253,7 +252,7 @@ const InventoryManager: React.FC = () => {
         body: formData,
       });
       const data = await res.json();
-      return data.public_id; // Guardamos el public_id para usar getImgUrl
+      return data.public_id;
     } catch (error) {
       console.error("Cloudinary error:", error);
       return null;
@@ -395,11 +394,12 @@ const InventoryManager: React.FC = () => {
   );
 };
 
-// --- COMPONENTE SALES MANAGER ---
+// --- SALES MANAGER COMPONENT ---
 const SalesManager: React.FC = () => {
   const { supabase } = useApp();
   const [sales, setSales] = useState<any[]>([]);
-  const fetchSales = async () => {
+  fetchSales();
+  async function fetchSales() {
     const { data } = await supabase.from('sales').select('*').order('created_at', { ascending: false });
     if (data) setSales(data);
   };
@@ -426,34 +426,98 @@ const SalesManager: React.FC = () => {
   );
 };
 
-// --- COMPONENTE SOCIOS MANAGER ---
+// --- SOCIOS MANAGER COMPONENT (SELECTOR DE SOCIO Y EDICIÓN DE PUNTOS) ---
 const SociosManager: React.FC = () => {
   const { supabase } = useApp();
   const [socios, setSocios] = useState<User[]>([]);
-  useEffect(() => {
-    const f = async () => {
-      const { data } = await supabase.from('users').select('*').order('points', { ascending: false });
-      if (data) setSocios(data.map((u:any) => ({ ...u, isSocio: u.is_socio, isAdmin: u.is_admin })));
-    };
-    f();
-  }, [supabase]);
+  const [editingPointsId, setEditingPointsId] = useState<string | null>(null);
+  const [newPoints, setNewPoints] = useState<number>(0);
+
+  const fetchSocios = async () => {
+    const { data } = await supabase.from('users').select('*').order('points', { ascending: false });
+    if (data) setSocios(data.map((u:any) => ({ ...u, isSocio: u.is_socio, isAdmin: u.is_admin })));
+  };
+
+  useEffect(() => { fetchSocios(); }, [supabase]);
+
+  const handleUpdatePoints = async (id: string) => {
+    const { error } = await supabase.from('users').update({ points: newPoints }).eq('id', id);
+    if (!error) {
+      alert('¡Puntos actualizados con éxito! ✨');
+      setEditingPointsId(null);
+      fetchSocios();
+    } else {
+      alert('Error al actualizar puntos ❌');
+    }
+  };
+
+  const handleDeleteSocio = async (id: string, name: string) => {
+    if (confirm(`¿Estás seguro de que quieres eliminar a ${name} del Club Matita? Esta acción no se puede deshacer.`)) {
+      const { error } = await supabase.from('users').delete().eq('id', id);
+      if (!error) {
+        alert('Socio eliminado 🗑️');
+        fetchSocios();
+      } else {
+        alert('No se pudo eliminar al socio ❌');
+      }
+    }
+  };
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      <h3 className="text-3xl font-bold text-gray-700">Miembros del Club 👑</h3>
-      <div className="grid gap-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-3xl font-bold text-gray-700">Miembros del Club 👑</h3>
+        <span className="bg-orange-50 text-[#f6a118] px-5 py-2 rounded-full font-bold text-sm uppercase tracking-widest">{socios.length} Socios</span>
+      </div>
+      
+      <div className="grid gap-6">
         {socios.map(s => (
-          <div key={s.id} className="bg-white p-6 rounded-[2rem] border-4 border-white shadow-sm flex justify-between items-center">
-             <div className="flex items-center gap-6">
-                <div className="w-16 h-16 bg-[#fef9eb] rounded-full flex items-center justify-center text-3xl shadow-inner border border-white">👑</div>
+          <div key={s.id} className="bg-white p-8 rounded-[2.5rem] border-4 border-white shadow-sm flex flex-col md:flex-row justify-between items-center gap-6 group hover:border-[#fadb31] transition-all">
+             <div className="flex items-center gap-6 w-full md:w-auto">
+                <div className="w-16 h-16 bg-[#fef9eb] rounded-full flex items-center justify-center text-3xl shadow-inner border border-white shrink-0">
+                  {s.isSocio ? '👑' : '👤'}
+                </div>
                 <div>
-                   <h4 className="text-2xl font-bold text-gray-800">{s.name}</h4>
+                   <h4 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                     {s.name}
+                     {s.isAdmin && <span className="bg-blue-50 text-blue-400 text-[10px] px-2 py-1 rounded-md uppercase">Admin</span>}
+                   </h4>
                    <p className="text-sm text-gray-400">{s.email}</p>
                 </div>
              </div>
-             <div className="text-right">
-                <p className="text-4xl font-bold text-[#f6a118]">{s.points}</p>
-                <p className="text-[10px] text-gray-300 font-bold uppercase">Puntos ✨</p>
+
+             <div className="flex items-center gap-8 w-full md:w-auto justify-between md:justify-end">
+                <div className="text-right">
+                   {editingPointsId === s.id ? (
+                     <div className="flex items-center gap-2 animate-fadeIn">
+                       <input 
+                         type="number" 
+                         className="w-24 text-center p-2 rounded-xl border-2 border-[#fadb31] text-xl font-bold" 
+                         value={newPoints} 
+                         onChange={(e) => setNewPoints(Number(e.target.value))} 
+                       />
+                       <button onClick={() => handleUpdatePoints(s.id)} className="bg-[#25D366] text-white p-2 rounded-xl text-xs font-bold uppercase">OK</button>
+                       <button onClick={() => setEditingPointsId(null)} className="bg-gray-100 text-gray-400 p-2 rounded-xl text-xs font-bold uppercase">×</button>
+                     </div>
+                   ) : (
+                     <div className="flex flex-col items-end cursor-pointer" onClick={() => { setEditingPointsId(s.id); setNewPoints(s.points); }}>
+                        <p className="text-4xl font-bold text-[#f6a118] group-hover:scale-110 transition-transform">{s.points}</p>
+                        <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest flex items-center gap-1">
+                          Puntos ✨ <span className="text-[8px] opacity-0 group-hover:opacity-100 transition-opacity">(Editar)</span>
+                        </p>
+                     </div>
+                   )}
+                </div>
+
+                <div className="flex gap-2">
+                   <button 
+                     onClick={() => handleDeleteSocio(s.id, s.name)}
+                     className="w-12 h-12 rounded-2xl bg-red-50 text-red-200 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center text-xl shadow-sm"
+                     title="Borrar Socio"
+                   >
+                     🗑️
+                   </button>
+                </div>
              </div>
           </div>
         ))}
@@ -462,7 +526,7 @@ const SociosManager: React.FC = () => {
   );
 };
 
-// --- COMPONENTE IDEAS MANAGER ---
+// --- IDEAS MANAGER COMPONENT ---
 const IdeasManager: React.FC = () => {
   const { supabase } = useApp();
   const [ideas, setIdeas] = useState<any[]>([]);
@@ -492,7 +556,7 @@ const IdeasManager: React.FC = () => {
   );
 };
 
-// --- COMPONENTE DESIGN MANAGER (CORREGIDO PARA GUARDAR EL LOGO) ---
+// --- DESIGN MANAGER COMPONENT ---
 const DesignManager: React.FC = () => {
   const { logoUrl, setLogoUrl, supabase } = useApp();
   const fRef = useRef<HTMLInputElement>(null);
