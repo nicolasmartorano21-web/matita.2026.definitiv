@@ -44,7 +44,7 @@ const LoginScreen: React.FC = () => {
         });
 
         if (error) throw error;
-        // El listener en App.tsx actualizará el estado de la aplicación.
+        // El listener en App.tsx se encargará del resto
       }
     } catch (err: any) {
       alert(err.message || 'Ups, algo falló. Verifica tus datos ❌');
@@ -54,14 +54,16 @@ const LoginScreen: React.FC = () => {
   };
 
   const handleGuestLogin = () => {
-    setUser({ 
+    const guestUser = { 
       id: 'guest', 
       name: 'Invitado', 
       email: 'invitado@matita.com', 
       points: 0, 
       isAdmin: false, 
       isSocio: false 
-    });
+    };
+    setUser(guestUser);
+    localStorage.setItem('matita_persisted_user', JSON.stringify(guestUser));
   };
 
   return (
