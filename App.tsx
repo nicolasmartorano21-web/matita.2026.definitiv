@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
@@ -44,35 +43,36 @@ const App: React.FC = () => {
   const [loadingSession, setLoadingSession] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [logoUrl, setLogoUrl] = useState<string>("https://i.ibb.co/L6v3X8G/matita-logo.png");
+  // Logo por defecto robusto (Cloudinary es más confiable que imgbb)
+  const [logoUrl, setLogoUrl] = useState<string>(() => {
+    return localStorage.getItem('matita_cached_logo') || "https://res.cloudinary.com/dllm8ggob/image/upload/v1740628230/branding/logo_default.png";
+  });
 
-  // Función para limpiar carrito
   const clearCart = useCallback(() => setCart([]), []);
 
   useEffect(() => {
     const initApp = async () => {
-      // 1. Cargar datos inmediatos de LocalStorage para evitar el loader si ya hay sesión
+      // 1. Recuperar datos locales de inmediato
       const savedUser = localStorage.getItem('matita_persisted_user');
       const savedFavs = localStorage.getItem('matita_favs');
       
       if (savedUser) {
         setUser(JSON.parse(savedUser));
-        // Si tenemos usuario guardado, podemos quitar el loader más rápido
         setLoadingSession(false);
       }
 
       if (savedFavs) setFavorites(JSON.parse(savedFavs));
 
       try {
-        // 2. Verificar sesión real de Supabase en segundo plano
-        const { data: { session } } = await supabase.auth.getSession();
+        // 2. Verificar sesión real
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (session?.user) {
+        if (session?.user && !sessionError) {
           const { data: userData } = await supabase
             .from('users')
             .select('*')
             .eq('id', session.user.id)
-            .single();
+            .maybeSingle();
           
           if (userData) {
             const fullUser = {
@@ -88,19 +88,21 @@ const App: React.FC = () => {
           }
         }
 
-        // 3. Cargar Configuración Global
+        // 3. Cargar Logo con caché para la próxima vez
         const { data: configData } = await supabase
           .from('site_config')
           .select('logo_url')
           .eq('id', 'global')
-          .single();
+          .maybeSingle();
         
-        if (configData) setLogoUrl(configData.logo_url);
+        if (configData?.logo_url) {
+          setLogoUrl(configData.logo_url);
+          localStorage.setItem('matita_cached_logo', configData.logo_url);
+        }
 
       } catch (error) {
-        console.error("Error silencioso en arranque:", error);
+        console.error("Fallo silencioso en inicio:", error);
       } finally {
-        // Siempre quitar el loader después de un tiempo razonable
         setLoadingSession(false);
       }
     };
@@ -113,7 +115,7 @@ const App: React.FC = () => {
           .from('users')
           .select('*')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
         
         if (userData) {
           const fullUser = {
@@ -150,18 +152,21 @@ const App: React.FC = () => {
     );
   };
 
-  if (loadingSession) {
+  if (loadingSession && !user) {
     return (
-      <div className="min-h-screen bg-[#fef9eb] flex flex-col items-center justify-center gap-6 font-matita">
-        <div className="relative">
-          <div className="w-24 h-24 border-4 border-[#fadb31]/30 border-t-[#f6a118] rounded-full animate-spin"></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-3 h-3 bg-[#ea7e9c] rounded-full animate-ping"></div>
-          </div>
+      <div className="min-h-screen bg-[#fef9eb] flex flex-col items-center justify-center gap-8 font-matita">
+        <div className="relative w-32 h-32 flex items-center justify-center">
+          <div className="absolute inset-0 border-8 border-[#fadb31]/20 rounded-full"></div>
+          <div className="absolute inset-0 border-8 border-transparent border-t-[#f6a118] rounded-full animate-spin"></div>
+          <span className="text-6xl animate-pulse">✏️</span>
         </div>
-        <div className="text-center animate-pulse">
-          <h2 className="text-4xl font-logo text-[#f6a118]">Matita</h2>
-          <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Iniciando...</p>
+        <div className="text-center">
+          <h2 className="text-5xl font-logo text-[#f6a118] mb-2">Matita</h2>
+          <div className="flex gap-1 justify-center">
+             <div className="w-2 h-2 bg-[#f6a118] rounded-full animate-bounce delay-100"></div>
+             <div className="w-2 h-2 bg-[#ea7e9c] rounded-full animate-bounce delay-200"></div>
+             <div className="w-2 h-2 bg-[#fadb31] rounded-full animate-bounce delay-300"></div>
+          </div>
         </div>
       </div>
     );
@@ -200,3 +205,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+
