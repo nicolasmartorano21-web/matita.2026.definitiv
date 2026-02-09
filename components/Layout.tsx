@@ -11,10 +11,19 @@ const Layout: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
 
-  const bannerImages = [
-    "https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=2000&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?q=80&w=2000&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1586075010633-2a420b91e1d7?q=80&w=2000&auto=format&fit=crop"
+  const slides = [
+    {
+      url: "https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=2000&auto=format&fit=crop",
+      color: "border-[#fadb31]"
+    },
+    {
+      url: "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?q=80&w=2000&auto=format&fit=crop",
+      color: "border-[#ea7e9c]"
+    },
+    {
+      url: "https://images.unsplash.com/photo-1586075010633-2a420b91e1d7?q=80&w=2000&auto=format&fit=crop",
+      color: "border-[#f6a118]"
+    }
   ];
 
   useEffect(() => {
@@ -23,13 +32,13 @@ const Layout: React.FC = () => {
     };
     window.addEventListener('scroll', handleScroll);
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % bannerImages.length);
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 6000);
     return () => {
       window.removeEventListener('scroll', handleScroll);
       clearInterval(timer);
     };
-  }, [bannerImages.length]);
+  }, [slides.length]);
 
   const handleLogout = () => {
     setUser(null);
@@ -49,30 +58,54 @@ const Layout: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col font-matita bg-[#fef9eb]/30">
       
-      {/* BANNER AUTO-COLAPSABLE */}
-      <section className={`w-full relative overflow-hidden bg-white transition-all duration-700 ease-in-out ${isScrolled ? 'h-0 opacity-0' : 'h-48 md:h-[350px]'}`}>
-        {bannerImages.map((img, idx) => (
+      {/* BANNER LIMPIO CON EFECTO KEN BURNS */}
+      <section className={`w-full relative overflow-hidden bg-white transition-all duration-1000 ease-in-out ${isScrolled ? 'h-0 opacity-0' : 'h-[40vh] md:h-[450px]'}`}>
+        {slides.map((slide, idx) => (
           <div 
             key={idx} 
             className={`absolute inset-0 transition-opacity duration-[2000ms] ease-in-out ${
-              idx === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-110'
+              idx === currentSlide ? 'opacity-100' : 'opacity-0'
             }`}
           >
-            <img src={img} className="w-full h-full object-cover" alt="Matita" />
-            <div className="absolute inset-0 bg-black/5"></div>
+            {/* Imagen con efecto Zoom Suave */}
+            <img 
+              src={slide.url} 
+              className={`w-full h-full object-cover transition-transform duration-[8000ms] ease-linear ${
+                idx === currentSlide ? 'scale-110' : 'scale-100'
+              }`} 
+              alt="Matita Banner" 
+            />
+            {/* Overlay sutil para profundidad visual */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/5"></div>
           </div>
         ))}
+
+        {/* Indicadores de diapositiva (Puntos Minimalistas) */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4 z-20">
+          {slides.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrentSlide(idx)}
+              className={`h-2 rounded-full transition-all duration-700 ${
+                idx === currentSlide ? 'w-12 bg-[#fadb31]' : 'w-2 bg-white/60 hover:bg-white'
+              } shadow-sm border border-black/5`}
+            />
+          ))}
+        </div>
+
+        {/* Separador inferior estilizado */}
+        <div className="absolute bottom-0 left-0 w-full h-6 bg-[#fef9eb]/20 backdrop-blur-[1px] border-t border-white/20"></div>
       </section>
 
-      {/* HEADER ULTRA SLIM */}
-      <header className={`sticky top-0 z-40 transition-all duration-500 bg-white/95 backdrop-blur-md border-b-2 border-[#fadb31]/30 shadow-sm ${isScrolled ? 'py-2' : 'py-4'}`}>
+      {/* HEADER DINÁMICO */}
+      <header className={`sticky top-0 z-40 transition-all duration-500 bg-white/95 backdrop-blur-md border-b-2 border-[#fadb31]/30 shadow-sm ${isScrolled ? 'py-2' : 'py-5'}`}>
         <div className="container mx-auto px-6 flex items-center justify-between gap-8 max-w-[1920px]">
           
           <NavLink to="/" className="flex items-center gap-3 shrink-0 group">
-            <div className={`bg-[#fadb31] rounded-full flex items-center justify-center shadow-md border-2 border-white transition-all duration-500 ${isScrolled ? 'w-10 h-10' : 'w-14 h-14'}`}>
+            <div className={`bg-[#fadb31] rounded-full flex items-center justify-center shadow-md border-2 border-white transition-all duration-500 ${isScrolled ? 'w-10 h-10' : 'w-16 h-16'}`}>
               <img src={logoUrl} alt="Logo" className="w-full h-full object-contain p-1" />
             </div>
-            <h1 className={`font-logo text-gray-800 transition-all duration-500 ${isScrolled ? 'text-2xl' : 'text-4xl'}`}>Matita</h1>
+            <h1 className={`font-logo text-gray-800 transition-all duration-500 ${isScrolled ? 'text-2xl' : 'text-5xl'}`}>Matita</h1>
           </NavLink>
 
           <nav className="hidden lg:flex items-center justify-center gap-x-12 flex-grow">
@@ -94,7 +127,7 @@ const Layout: React.FC = () => {
           <div className="flex items-center gap-4">
             <button 
               onClick={handleLogout} 
-              className="hidden sm:flex bg-gray-50 text-gray-400 px-5 py-2 rounded-full text-base font-bold hover:bg-red-50 hover:text-red-300 transition-all"
+              className="hidden sm:flex bg-gray-50 text-gray-400 px-6 py-2 rounded-full text-base font-bold hover:bg-red-50 hover:text-red-300 transition-all border border-transparent hover:border-red-100"
             >
                Salir 🚪
             </button>
@@ -110,7 +143,7 @@ const Layout: React.FC = () => {
         <Outlet />
       </main>
 
-      {/* BOTONES FLOTANTES MÁGICOS */}
+      {/* ACCIONES FLOTANTES */}
       <div className="fixed bottom-8 right-8 z-50 flex flex-col gap-4 items-center">
          <a 
            href="https://instagram.com/libreriamatita" 
@@ -133,35 +166,33 @@ const Layout: React.FC = () => {
          <Cart />
       </div>
 
-      {/* MENÚ MÓVIL */}
+      {/* MENÚ LATERAL MÓVIL */}
       {isMenuOpen && (
         <div className="fixed inset-0 z-[100] flex animate-fadeIn">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)}></div>
-          <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-2xl p-10 flex flex-col gap-8 border-l-[12px] border-[#fadb31] animate-slideUp">
-             <button onClick={() => setIsMenuOpen(false)} className="self-end text-6xl text-gray-200 hover:text-[#ea7e9c]">×</button>
-             <div className="flex flex-col gap-6">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsMenuOpen(false)}></div>
+          <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-2xl p-10 flex flex-col gap-10 border-l-[12px] border-[#fadb31] animate-slideUp">
+             <button onClick={() => setIsMenuOpen(false)} className="self-end text-6xl text-gray-200 hover:text-[#ea7e9c] transition-colors">×</button>
+             <div className="flex flex-col gap-8">
                {navItems.map((item) => (
-                 <NavLink key={item.path} to={item.path} onClick={() => setIsMenuOpen(false)} className="text-3xl font-bold text-gray-600 hover:text-[#f6a118]">
+                 <NavLink key={item.path} to={item.path} onClick={() => setIsMenuOpen(false)} className="text-3xl font-bold text-gray-600 hover:text-[#f6a118] transition-colors">
                    {item.label}
                  </NavLink>
                ))}
              </div>
-             <button onClick={handleLogout} className="mt-auto py-5 bg-gray-50 text-red-300 rounded-3xl font-bold text-2xl">Salir 🚪</button>
+             <button onClick={handleLogout} className="mt-auto py-6 bg-gray-50 text-red-300 rounded-3xl font-bold text-2xl border-2 border-transparent active:border-red-100">Salir 🚪</button>
           </div>
         </div>
       )}
 
-      {/* FOOTER REDISEÑADO CON AMOR */}
+      {/* FOOTER */}
       <footer className="bg-white pt-24 pb-12 border-t border-[#fef9eb] relative overflow-hidden">
-        {/* Decoración de fondo sutil */}
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#fadb31] via-[#ea7e9c] to-[#f6a118] opacity-30"></div>
+        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#fadb31] via-[#ea7e9c] to-[#f6a118] opacity-20"></div>
         <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-16 text-center md:text-left">
           
-          {/* Info de Tienda */}
           <div className="space-y-6">
             <div className="flex items-center gap-3 justify-center md:justify-start">
                <div className="w-12 h-12 bg-[#fef9eb] rounded-2xl flex items-center justify-center text-2xl shadow-sm">📍</div>
-               <h4 className="text-2xl font-bold text-gray-800">Ubicación</h4>
+               <h4 className="text-2xl font-bold text-gray-800">Encontranos</h4>
             </div>
             <p className="text-xl text-gray-400 italic leading-relaxed">
               Te esperamos en el corazón de **La Calera**, Córdoba.<br/>
@@ -169,22 +200,16 @@ const Layout: React.FC = () => {
             </p>
           </div>
 
-          {/* Acceso Admin Integrado (EL LÁPIZ) */}
           <div className="flex flex-col items-center justify-center space-y-4">
             <div 
               onClick={() => navigate('/admin')}
-              className="w-28 h-28 bg-[#fef9eb] rounded-[2.5rem] flex items-center justify-center shadow-xl border-4 border-white hover:border-[#fadb31] hover:scale-110 transition-all cursor-pointer group relative"
+              className="w-24 h-24 bg-[#fef9eb] rounded-[2rem] flex items-center justify-center shadow-xl border-4 border-white hover:border-[#fadb31] hover:scale-110 transition-all cursor-pointer group"
             >
-              <div className="absolute -inset-2 bg-[#fadb31]/20 rounded-[3rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <span className="text-6xl group-hover:animate-bounce relative z-10">✏️</span>
-              <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                <span className="text-sm font-bold text-[#f6a118] uppercase tracking-widest bg-white px-3 py-1 rounded-full shadow-sm">Gestionar Magia</span>
-              </div>
+              <span className="text-5xl group-hover:animate-bounce">✏️</span>
             </div>
-            <p className="font-logo text-3xl text-gray-300 mt-4 italic">"Papelería con alma"</p>
+            <p className="font-logo text-3xl text-gray-300 mt-4">"Papelería con alma"</p>
           </div>
 
-          {/* Redes y Contacto */}
           <div className="space-y-6">
             <div className="flex items-center gap-3 justify-center md:justify-start">
                <div className="w-12 h-12 bg-[#fef9eb] rounded-2xl flex items-center justify-center text-2xl shadow-sm">✉️</div>
@@ -195,14 +220,12 @@ const Layout: React.FC = () => {
                <span className="text-gray-100">•</span>
                <a href="#" className="text-gray-300 hover:text-[#25D366] transition-colors text-xl font-bold">WhatsApp</a>
             </div>
-            <p className="text-sm text-gray-300 font-bold uppercase tracking-[0.2em]">Hecho con amor en CBA 🇦🇷</p>
+            <p className="text-sm text-gray-200 font-bold uppercase tracking-[0.2em]">Hecho con amor en CBA 🇦🇷</p>
           </div>
-
         </div>
 
-        {/* Copyright final */}
         <div className="mt-20 pt-8 border-t border-gray-50 text-center">
-          <p className="text-gray-200 text-sm font-bold uppercase tracking-[0.4em]">
+          <p className="text-gray-200 text-xs font-bold uppercase tracking-[0.4em]">
             © 2026 Matita Librería • Todos los derechos reservados
           </p>
         </div>
