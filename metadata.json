@@ -1,0 +1,8 @@
+{
+  "name": "Matita - Papelería & Club",
+  "description": "Una plataforma renovada para Matita con gestión de catálogo, club de puntos, panel de administración y diseño profesional en tonos beige y rosados.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
