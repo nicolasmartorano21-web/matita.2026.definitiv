@@ -79,7 +79,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" strokeWidth={3}/></svg>
             </button>
 
-            {/* IZQUIERDA: IMAGEN Y BOTÓN AÑADIR (CAMBIO SOLICITADO) */}
+            {/* IZQUIERDA: IMAGEN Y BOTÓN AÑADIR */}
             <div className="md:w-1/2 p-8 bg-white flex flex-col items-center gap-6">
               <div className="w-full aspect-square bg-[#fdfaf6] rounded-[2.5rem] p-6 flex items-center justify-center overflow-hidden border-2 border-gray-50 relative">
                 <img src={getImgUrl(product.images[activeImage], 800)} className="max-w-full max-h-full object-contain" alt={product.name} />
@@ -91,7 +91,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 </div>
               </div>
 
-              {/* Botón Añadir en lugar de las fotos chiquitas */}
               <button 
                 onClick={handleAddToCart}
                 disabled={currentStock <= 0}
@@ -101,8 +100,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               </button>
             </div>
 
-            {/* DERECHA: DETALLES Y VARIANTES */}
-            <div className="md:w-1/2 p-10 flex flex-col justify-between space-y-8">
+            {/* DERECHA: DETALLES Y VARIANTES (SELECTOR DE COLOR REDISEÑADO) */}
+            <div className="md:w-1/2 p-10 flex flex-col justify-between space-y-6 overflow-y-auto scrollbar-hide">
               <div className="space-y-6">
                 <div>
                    <p className="text-[#ea7e9c] font-bold tracking-[0.2em] uppercase text-sm mb-1">{product.category}</p>
@@ -114,15 +113,30 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 </p>
 
                 <div className="space-y-4">
-                  <p className="text-xs font-bold text-gray-300 uppercase tracking-widest ml-2">Variantes disponibles</p>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex justify-between items-center px-2">
+                    <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Elige tu variante</p>
+                    <span className="text-xs font-bold text-[#f6a118] bg-orange-50 px-3 py-1 rounded-full">{product.colors.length} opciones</span>
+                  </div>
+                  
+                  {/* NUEVO DISEÑO DE SELECTOR DE COLORES TÁCTIL */}
+                  <div className="grid grid-cols-2 gap-3">
                     {product.colors.map(c => (
                       <button 
                         key={c.color} 
                         onClick={() => c.stock > 0 && setSelectedColor(c.color)} 
-                        className={`px-6 py-3 rounded-2xl text-lg font-bold border-4 transition-all ${c.stock <= 0 ? 'bg-gray-50 text-gray-200 border-gray-50 grayscale cursor-not-allowed' : selectedColor === c.color ? 'matita-gradient-orange text-white border-white shadow-lg scale-105' : 'bg-white text-gray-400 border-transparent hover:border-[#fadb31]'}`}
+                        className={`group relative p-4 rounded-3xl border-4 transition-all flex flex-col items-center justify-center gap-1 ${
+                          c.stock <= 0 
+                            ? 'bg-gray-50 text-gray-300 border-gray-100 opacity-40 cursor-not-allowed' 
+                            : selectedColor === c.color 
+                              ? 'bg-white border-[#f6a118] shadow-lg scale-[1.02]' 
+                              : 'bg-white border-transparent hover:border-gray-100'
+                        }`}
                       >
-                        {c.color} <span className="text-xs opacity-50 ml-2">({c.stock})</span>
+                        {selectedColor === c.color && (
+                          <div className="absolute top-2 right-2 w-5 h-5 bg-[#f6a118] rounded-full flex items-center justify-center text-white text-[10px] animate-scaleIn">✓</div>
+                        )}
+                        <span className={`text-lg font-bold transition-colors ${selectedColor === c.color ? 'text-[#f6a118]' : 'text-gray-500'}`}>{c.color}</span>
+                        <span className="text-[10px] font-bold uppercase opacity-50">Stock: {c.stock}</span>
                       </button>
                     ))}
                   </div>
@@ -135,8 +149,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                   <span className="text-sm font-bold text-[#ea7e9c] uppercase">+ {product.points} pts club ✨</span>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-gray-300 font-bold uppercase tracking-widest">Color Seleccionado</p>
-                  <p className="text-2xl font-bold text-gray-800">{selectedColor || '---'}</p>
+                  <p className="text-xs text-gray-300 font-bold uppercase tracking-widest">Selección</p>
+                  <p className="text-2xl font-bold text-gray-800 truncate max-w-[150px]">{selectedColor || '---'}</p>
                 </div>
               </div>
             </div>
