@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Product, Category, User, Sale, ColorStock } from '../types';
 import { useApp } from '../App';
@@ -11,7 +12,6 @@ const getImgUrl = (id: string, w = 600) => {
 };
 
 const AdminPanel: React.FC = () => {
-  const { supabase } = useApp();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'sales' | 'socios' | 'ideas' | 'design'>('dashboard');
@@ -50,7 +50,7 @@ const AdminPanel: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 border-b-4 border-[#fadb31]/20 pb-8">
         <div>
           <h2 className="text-5xl md:text-6xl font-bold text-[#f6a118]">Gestión Matita</h2>
-          <p className="text-xl md:text-2xl text-gray-400 italic">Estadísticas y Control Real ✏️</p>
+          <p className="text-xl md:text-2xl text-gray-400 italic">Control Real ✏️</p>
         </div>
         <div className="flex flex-wrap gap-2 justify-center">
           {[
@@ -205,6 +205,17 @@ const InventoryManager: React.FC = () => {
 
   useEffect(() => { fetchProducts(); }, [supabase]);
 
+  const exportInventory = () => {
+    const headers = "Nombre,Precio,Puntos,Categoría\n";
+    const csvContent = products.map(p => `"${p.name}",${p.price},${p.points},"${p.category}"`).join("\n");
+    const blob = new Blob([headers + csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Inventario_Matita.csv';
+    a.click();
+  };
+
   const updateStock = (idx: number, change: number) => {
     if (!editingProduct?.colors) return;
     const next = [...editingProduct.colors];
@@ -234,7 +245,7 @@ const InventoryManager: React.FC = () => {
     if (error) {
       alert("Error: " + error.message);
     } else {
-      alert('✨ ¡Stock actualizado! Ya está en el catálogo.');
+      alert('✨ ¡Stock actualizado!');
       setFormMode('list'); 
       fetchProducts();
     }
@@ -280,7 +291,10 @@ const InventoryManager: React.FC = () => {
     return (
       <div className="space-y-10">
         <div className="flex justify-between items-center">
-          <h3 className="text-3xl font-bold text-gray-700">Inventario 📦</h3>
+          <div className="flex items-center gap-4">
+            <h3 className="text-3xl font-bold text-gray-700">Inventario 📦</h3>
+            <button onClick={exportInventory} className="text-gray-300 hover:text-[#f6a118] transition-colors text-sm font-bold border-b border-dashed">Exportar CSV ⬇️</button>
+          </div>
           <button 
             onClick={() => { 
               setEditingProduct({ name: '', price: 0, oldPrice: 0, points: 0, category: 'Escolar', colors: [{color: 'Único', stock: 10}], images: [] }); 
@@ -316,6 +330,7 @@ const InventoryManager: React.FC = () => {
       </div>
       
       <div className="bg-gray-50 p-8 md:p-12 rounded-[3.5rem] border-4 border-white space-y-8 shadow-xl max-h-[85vh] overflow-y-auto scrollbar-hide">
+        {/* Form content remains the same... */}
         <div className="grid md:grid-cols-2 gap-6">
            <div className="space-y-1">
              <label className="text-sm font-bold text-gray-400 ml-4">Nombre del Tesoro</label>
@@ -373,7 +388,7 @@ const InventoryManager: React.FC = () => {
              disabled={isUploading}
              className="w-full py-8 bg-white border-4 border-dashed border-gray-200 text-gray-400 rounded-3xl text-xl font-bold hover:bg-gray-100 transition-all"
            >
-             {isUploading ? '📤 Subiendo...' : '📸 Subir Fotos desde el Celular'}
+             {isUploading ? '📤 Subiendo...' : '📸 Subir Fotos'}
            </button>
            
            <div className="flex gap-4 overflow-x-auto py-2 scrollbar-hide">
@@ -398,12 +413,14 @@ const InventoryManager: React.FC = () => {
 const SalesManager: React.FC = () => {
   const { supabase } = useApp();
   const [sales, setSales] = useState<any[]>([]);
-  fetchSales();
-  async function fetchSales() {
-    const { data } = await supabase.from('sales').select('*').order('created_at', { ascending: false });
-    if (data) setSales(data);
-  };
-  useEffect(() => { fetchSales(); }, [supabase]);
+
+  useEffect(() => {
+    const fetchSales = async () => {
+      const { data } = await supabase.from('sales').select('*').order('created_at', { ascending: false });
+      if (data) setSales(data);
+    };
+    fetchSales();
+  }, [supabase]);
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -426,7 +443,7 @@ const SalesManager: React.FC = () => {
   );
 };
 
-// --- SOCIOS MANAGER COMPONENT (SELECTOR DE SOCIO Y EDICIÓN DE PUNTOS) ---
+// --- SOCIOS MANAGER COMPONENT ---
 const SociosManager: React.FC = () => {
   const { supabase } = useApp();
   const [socios, setSocios] = useState<User[]>([]);
@@ -438,12 +455,25 @@ const SociosManager: React.FC = () => {
     if (data) setSocios(data.map((u:any) => ({ ...u, isSocio: u.is_socio, isAdmin: u.is_admin })));
   };
 
-  useEffect(() => { fetchSocios(); }, [supabase]);
+  useEffect(() => {
+    fetchSocios();
+  }, [supabase]);
+
+  const exportSocios = () => {
+    const headers = "Nombre,Email,Puntos,Es Socio\n";
+    const csvContent = socios.map(s => `"${s.name}","${s.email}",${s.points},${s.isSocio}`).join("\n");
+    const blob = new Blob([headers + csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Socios_Matita.csv';
+    a.click();
+  };
 
   const handleUpdatePoints = async (id: string) => {
     const { error } = await supabase.from('users').update({ points: newPoints }).eq('id', id);
     if (!error) {
-      alert('¡Puntos actualizados con éxito! ✨');
+      alert('¡Puntos actualizados! ✨');
       setEditingPointsId(null);
       fetchSocios();
     } else {
@@ -452,72 +482,54 @@ const SociosManager: React.FC = () => {
   };
 
   const handleDeleteSocio = async (id: string, name: string) => {
-    if (confirm(`¿Estás seguro de que quieres eliminar a ${name} del Club Matita? Esta acción no se puede deshacer.`)) {
+    if (confirm(`¿Eliminar a ${name} del Club?`)) {
       const { error } = await supabase.from('users').delete().eq('id', id);
       if (!error) {
         alert('Socio eliminado 🗑️');
         fetchSocios();
       } else {
-        alert('No se pudo eliminar al socio ❌');
+        alert('No se pudo eliminar ❌');
       }
     }
   };
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      <div className="flex justify-between items-center">
-        <h3 className="text-3xl font-bold text-gray-700">Miembros del Club 👑</h3>
-        <span className="bg-orange-50 text-[#f6a118] px-5 py-2 rounded-full font-bold text-sm uppercase tracking-widest">{socios.length} Socios</span>
+      <div className="flex justify-between items-center px-4">
+        <div className="flex items-center gap-4">
+          <h3 className="text-3xl font-bold text-gray-700">Miembros del Club 👑</h3>
+          <button onClick={exportSocios} className="text-gray-300 hover:text-[#f6a118] transition-colors text-sm font-bold border-b border-dashed">Exportar CSV ⬇️</button>
+        </div>
+        <span className="bg-[#fef9eb] text-[#f6a118] px-4 py-2 rounded-full font-bold">{socios.length} Socios</span>
       </div>
       
-      <div className="grid gap-6">
+      <div className="grid gap-4">
         {socios.map(s => (
-          <div key={s.id} className="bg-white p-8 rounded-[2.5rem] border-4 border-white shadow-sm flex flex-col md:flex-row justify-between items-center gap-6 group hover:border-[#fadb31] transition-all">
-             <div className="flex items-center gap-6 w-full md:w-auto">
-                <div className="w-16 h-16 bg-[#fef9eb] rounded-full flex items-center justify-center text-3xl shadow-inner border border-white shrink-0">
+          <div key={s.id} className="bg-white p-6 rounded-[2rem] border-2 border-gray-50 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 hover:border-[#fadb31] transition-all">
+             <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-[#fef9eb] rounded-full flex items-center justify-center text-2xl">
                   {s.isSocio ? '👑' : '👤'}
                 </div>
                 <div>
-                   <h4 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                     {s.name}
-                     {s.isAdmin && <span className="bg-blue-50 text-blue-400 text-[10px] px-2 py-1 rounded-md uppercase">Admin</span>}
-                   </h4>
+                   <h4 className="text-xl font-bold text-gray-800">{s.name}</h4>
                    <p className="text-sm text-gray-400">{s.email}</p>
                 </div>
              </div>
 
-             <div className="flex items-center gap-8 w-full md:w-auto justify-between md:justify-end">
-                <div className="text-right">
-                   {editingPointsId === s.id ? (
-                     <div className="flex items-center gap-2 animate-fadeIn">
-                       <input 
-                         type="number" 
-                         className="w-24 text-center p-2 rounded-xl border-2 border-[#fadb31] text-xl font-bold" 
-                         value={newPoints} 
-                         onChange={(e) => setNewPoints(Number(e.target.value))} 
-                       />
-                       <button onClick={() => handleUpdatePoints(s.id)} className="bg-[#25D366] text-white p-2 rounded-xl text-xs font-bold uppercase">OK</button>
-                       <button onClick={() => setEditingPointsId(null)} className="bg-gray-100 text-gray-400 p-2 rounded-xl text-xs font-bold uppercase">×</button>
-                     </div>
-                   ) : (
-                     <div className="flex flex-col items-end cursor-pointer" onClick={() => { setEditingPointsId(s.id); setNewPoints(s.points); }}>
-                        <p className="text-4xl font-bold text-[#f6a118] group-hover:scale-110 transition-transform">{s.points}</p>
-                        <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest flex items-center gap-1">
-                          Puntos ✨ <span className="text-[8px] opacity-0 group-hover:opacity-100 transition-opacity">(Editar)</span>
-                        </p>
-                     </div>
-                   )}
-                </div>
-
-                <div className="flex gap-2">
-                   <button 
-                     onClick={() => handleDeleteSocio(s.id, s.name)}
-                     className="w-12 h-12 rounded-2xl bg-red-50 text-red-200 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center text-xl shadow-sm"
-                     title="Borrar Socio"
-                   >
-                     🗑️
-                   </button>
-                </div>
+             <div className="flex items-center gap-6">
+                {editingPointsId === s.id ? (
+                  <div className="flex items-center gap-2">
+                    <input type="number" className="w-20 p-2 text-center border-2 rounded-xl" value={newPoints} onChange={e => setNewPoints(Number(e.target.value))} />
+                    <button onClick={() => handleUpdatePoints(s.id)} className="bg-green-500 text-white p-2 rounded-xl">✓</button>
+                    <button onClick={() => setEditingPointsId(null)} className="bg-gray-100 text-gray-400 p-2 rounded-xl">×</button>
+                  </div>
+                ) : (
+                  <div className="cursor-pointer text-right" onClick={() => { setEditingPointsId(s.id); setNewPoints(s.points); }}>
+                    <p className="text-2xl font-bold text-[#f6a118] leading-none">{s.points}</p>
+                    <p className="text-[10px] font-bold text-gray-300 uppercase">Puntos ✨</p>
+                  </div>
+                )}
+                <button onClick={() => handleDeleteSocio(s.id, s.name)} className="text-red-200 hover:text-red-500 p-2">🗑️</button>
              </div>
           </div>
         ))}
@@ -543,12 +555,10 @@ const IdeasManager: React.FC = () => {
       <h3 className="text-3xl font-bold text-gray-700">Buzón de Ideas 💡</h3>
       <div className="grid gap-6">
         {ideas.map(i => (
-          <div key={i.id} className="bg-[#fef9eb] p-8 rounded-[3rem] border-4 border-white shadow-md relative overflow-hidden">
-             <p className="text-2xl font-bold text-gray-800 mb-4 underline decoration-[#fadb31] decoration-4 underline-offset-4 italic">"{i.title}"</p>
-             <p className="text-xl text-gray-500 italic leading-relaxed">"{i.content}"</p>
-             <div className="mt-6">
-                <p className="text-base text-[#f6a118] font-bold">- Enviado por: {i.user_name}</p>
-             </div>
+          <div key={i.id} className="bg-[#fef9eb] p-8 rounded-[3rem] border-4 border-white shadow-md">
+             <p className="text-2xl font-bold text-gray-800 mb-2 italic">"{i.title}"</p>
+             <p className="text-lg text-gray-500">{i.content}</p>
+             <p className="mt-4 text-sm text-[#f6a118] font-bold">- {i.user_name}</p>
           </div>
         ))}
       </div>
@@ -567,7 +577,6 @@ const DesignManager: React.FC = () => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("upload_preset", "Matita_web"); 
-    formData.append("folder", "branding");
     try {
       const res = await fetch("https://api.cloudinary.com/v1_1/dllm8ggob/image/upload", {
         method: "POST",
@@ -576,7 +585,6 @@ const DesignManager: React.FC = () => {
       const data = await res.json();
       return data.public_id;
     } catch (error) {
-      console.error("Error subiendo logo:", error);
       return null;
     }
   };
@@ -587,53 +595,30 @@ const DesignManager: React.FC = () => {
   };
 
   const saveDesign = async () => {
-    if (!previewFile && !logoUrl) return;
     setIsSaving(true);
     let finalLogoId = logoUrl;
-
     if (previewFile) {
       const uploadedId = await uploadLogoToCloudinary(previewFile);
       if (uploadedId) finalLogoId = uploadedId;
     }
-
-    const { error } = await supabase.from('site_config').upsert({ id: 'global', logo_url: finalLogoId });
-    
-    if (error) {
-      alert("Error al guardar: " + error.message);
-    } else {
-      setLogoUrl(finalLogoId);
-      setPreviewFile(null);
-      alert('✨ ¡Logo Guardado Exitosamente! ✨');
-    }
+    await supabase.from('site_config').upsert({ id: 'global', logo_url: finalLogoId });
+    setLogoUrl(finalLogoId);
+    setPreviewFile(null);
     setIsSaving(false);
+    alert('Logo Guardado ✨');
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-12 text-center py-6 animate-fadeIn">
-      <h3 className="text-5xl font-bold text-[#f6a118] drop-shadow-md">Imagen de Marca 🎨</h3>
-      <div className="bg-white p-12 rounded-[4rem] shadow-xl space-y-10 border-[10px] border-[#fef9eb]">
-        <div className="w-60 h-60 bg-[#fef9eb] rounded-full mx-auto shadow-inner flex items-center justify-center p-8 border-4 border-white group relative overflow-hidden">
-           <img 
-             src={previewFile ? URL.createObjectURL(previewFile) : getImgUrl(logoUrl, 300)} 
-             className="w-full h-full object-contain" 
-             alt="Logo" 
-           />
-           <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity" onClick={() => fRef.current?.click()}>
-              <p className="text-white font-bold text-2xl">Cambiar</p>
-           </div>
+    <div className="max-w-2xl mx-auto space-y-12 text-center py-6">
+      <h3 className="text-4xl font-bold text-[#f6a118]">Imagen de Marca 🎨</h3>
+      <div className="bg-white p-12 rounded-[4rem] shadow-xl border-[8px] border-[#fef9eb]">
+        <div className="w-48 h-48 bg-[#fef9eb] rounded-full mx-auto shadow-inner flex items-center justify-center p-6 border-4 border-white cursor-pointer" onClick={() => fRef.current?.click()}>
+           <img src={previewFile ? URL.createObjectURL(previewFile) : getImgUrl(logoUrl, 300)} className="w-full h-full object-contain" alt="Logo" />
         </div>
         <input type="file" ref={fRef} className="hidden" onChange={handleLogoChange} accept="image/*" />
-        
-        <div className="space-y-6">
-           <p className="text-xl text-gray-400 italic">"Este logo aparecerá en el inicio de la tienda." 🌸</p>
-           <button 
-              onClick={saveDesign} 
-              disabled={isSaving}
-              className="w-full py-6 matita-gradient-orange text-white rounded-[2rem] text-3xl font-bold shadow-xl border-4 border-white hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
-           >
-              {isSaving ? "Guardando..." : "Guardar Cambios ✨"}
-           </button>
-        </div>
+        <button onClick={saveDesign} disabled={isSaving} className="w-full mt-10 py-5 matita-gradient-orange text-white rounded-[2rem] text-2xl font-bold shadow-lg">
+          {isSaving ? "Guardando..." : "Guardar Cambios ✨"}
+        </button>
       </div>
     </div>
   );
