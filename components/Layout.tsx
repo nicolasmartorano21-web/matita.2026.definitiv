@@ -47,18 +47,18 @@ const Layout: React.FC = () => {
   };
 
   const navItems = [
-    { label: 'Catálogo', path: '/catalog' },
-    { label: 'Novedades', path: '/novelties' },
-    { label: 'Club', path: '/club' },
-    { label: 'Ideas', path: '/ideas' },
-    { label: 'Favoritos', path: '/favorites' },
-    { label: 'Contacto', path: '/contact' },
+    { label: 'CATÁLOGO', path: '/catalog' },
+    { label: 'NOVEDADES', path: '/novedades' },
+    { label: 'CLUB', path: '/club' },
+    { label: 'IDEAS', path: '/ideas' },
+    { label: 'FAVORITOS', path: '/favorites' },
+    { label: 'CONTACTO', path: '/contact' },
   ];
 
   return (
     <div className="min-h-screen flex flex-col font-matita bg-[#fef9eb]/30">
       
-      {/* BANNER LIMPIO CON EFECTO KEN BURNS */}
+      {/* BANNER CON EFECTO KEN BURNS */}
       <section className={`w-full relative overflow-hidden bg-white transition-all duration-1000 ease-in-out ${isScrolled ? 'h-0 opacity-0' : 'h-[40vh] md:h-[450px]'}`}>
         {slides.map((slide, idx) => (
           <div 
@@ -67,20 +67,17 @@ const Layout: React.FC = () => {
               idx === currentSlide ? 'opacity-100' : 'opacity-0'
             }`}
           >
-            {/* Imagen con efecto Zoom Suave */}
             <img 
               src={slide.url} 
               className={`w-full h-full object-cover transition-transform duration-[8000ms] ease-linear ${
                 idx === currentSlide ? 'scale-110' : 'scale-100'
               }`} 
-              alt="Matita Banner" 
+              alt="MATITA Banner" 
             />
-            {/* Overlay sutil para profundidad visual */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/5"></div>
           </div>
         ))}
 
-        {/* Indicadores de diapositiva (Puntos Minimalistas) */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4 z-20">
           {slides.map((_, idx) => (
             <button
@@ -92,9 +89,6 @@ const Layout: React.FC = () => {
             />
           ))}
         </div>
-
-        {/* Separador inferior estilizado */}
-        <div className="absolute bottom-0 left-0 w-full h-6 bg-[#fef9eb]/20 backdrop-blur-[1px] border-t border-white/20"></div>
       </section>
 
       {/* HEADER DINÁMICO */}
@@ -105,7 +99,7 @@ const Layout: React.FC = () => {
             <div className={`bg-[#fadb31] rounded-full flex items-center justify-center shadow-md border-2 border-white transition-all duration-500 ${isScrolled ? 'w-10 h-10' : 'w-16 h-16'}`}>
               <img src={logoUrl} alt="Logo" className="w-full h-full object-contain p-1" />
             </div>
-            <h1 className={`font-logo text-gray-800 transition-all duration-500 ${isScrolled ? 'text-2xl' : 'text-5xl'}`}>Matita</h1>
+            <h1 className={`font-logo text-gray-800 transition-all duration-500 uppercase tracking-tighter ${isScrolled ? 'text-2xl' : 'text-6xl'}`}>MATITA</h1>
           </NavLink>
 
           <nav className="hidden lg:flex items-center justify-center gap-x-12 flex-grow">
@@ -129,7 +123,7 @@ const Layout: React.FC = () => {
               onClick={handleLogout} 
               className="hidden sm:flex bg-gray-50 text-gray-400 px-6 py-2 rounded-full text-base font-bold hover:bg-red-50 hover:text-red-300 transition-all border border-transparent hover:border-red-100"
             >
-               Salir 🚪
+               SALIR 🚪
             </button>
             <button onClick={() => setIsMenuOpen(true)} className="lg:hidden p-1 text-[#f6a118]">
                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16m-7 6h7" /></svg>
@@ -166,35 +160,17 @@ const Layout: React.FC = () => {
          <Cart />
       </div>
 
-      {/* MENÚ LATERAL MÓVIL */}
-      {isMenuOpen && (
-        <div className="fixed inset-0 z-[100] flex animate-fadeIn">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsMenuOpen(false)}></div>
-          <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-2xl p-10 flex flex-col gap-10 border-l-[12px] border-[#fadb31] animate-slideUp">
-             <button onClick={() => setIsMenuOpen(false)} className="self-end text-6xl text-gray-200 hover:text-[#ea7e9c] transition-colors">×</button>
-             <div className="flex flex-col gap-8">
-               {navItems.map((item) => (
-                 <NavLink key={item.path} to={item.path} onClick={() => setIsMenuOpen(false)} className="text-3xl font-bold text-gray-600 hover:text-[#f6a118] transition-colors">
-                   {item.label}
-                 </NavLink>
-               ))}
-             </div>
-             <button onClick={handleLogout} className="mt-auto py-6 bg-gray-50 text-red-300 rounded-3xl font-bold text-2xl border-2 border-transparent active:border-red-100">Salir 🚪</button>
-          </div>
-        </div>
-      )}
-
-      {/* FOOTER */}
-      <footer className="bg-white pt-24 pb-12 border-t border-[#fef9eb] relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#fadb31] via-[#ea7e9c] to-[#f6a118] opacity-20"></div>
-        <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-16 text-center md:text-left">
+      {/* FOOTER - AHORA CON DEGRADADO NARANJA-ROSA */}
+      <footer className="bg-gradient-to-br from-[#f6a118] to-[#ea7e9c] text-white pt-24 pb-0 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-2 bg-white/20 backdrop-blur-sm"></div>
+        <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-16 text-center md:text-left pb-12 relative z-10">
           
           <div className="space-y-6">
             <div className="flex items-center gap-3 justify-center md:justify-start">
-               <div className="w-12 h-12 bg-[#fef9eb] rounded-2xl flex items-center justify-center text-2xl shadow-sm">📍</div>
-               <h4 className="text-2xl font-bold text-gray-800">Encontranos</h4>
+               <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl shadow-sm">📍</div>
+               <h4 className="text-2xl font-bold uppercase">Encontranos</h4>
             </div>
-            <p className="text-xl text-gray-400 italic leading-relaxed">
+            <p className="text-xl italic leading-relaxed text-white/90">
               Te esperamos en el corazón de **La Calera**, Córdoba.<br/>
               Un lugar donde los útiles cobran vida.
             </p>
@@ -203,35 +179,54 @@ const Layout: React.FC = () => {
           <div className="flex flex-col items-center justify-center space-y-4">
             <div 
               onClick={() => navigate('/admin')}
-              className="w-24 h-24 bg-[#fef9eb] rounded-[2rem] flex items-center justify-center shadow-xl border-4 border-white hover:border-[#fadb31] hover:scale-110 transition-all cursor-pointer group"
+              className="w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center shadow-xl border-4 border-white/50 hover:border-white hover:scale-110 transition-all cursor-pointer group"
             >
               <span className="text-5xl group-hover:animate-bounce">✏️</span>
             </div>
-            <p className="font-logo text-3xl text-gray-300 mt-4">"Papelería con alma"</p>
+            <p className="font-logo text-4xl mt-4 uppercase tracking-wider text-white">"PAPELERÍA CON ALMA"</p>
           </div>
 
           <div className="space-y-6">
             <div className="flex items-center gap-3 justify-center md:justify-start">
-               <div className="w-12 h-12 bg-[#fef9eb] rounded-2xl flex items-center justify-center text-2xl shadow-sm">✉️</div>
-               <h4 className="text-2xl font-bold text-gray-800">Seguinos</h4>
+               <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl shadow-sm">✉️</div>
+               <h4 className="text-2xl font-bold uppercase">Seguinos</h4>
             </div>
             <div className="flex gap-4 justify-center md:justify-start">
-               <a href="#" className="text-gray-300 hover:text-[#ea7e9c] transition-colors text-xl font-bold">Instagram</a>
-               <span className="text-gray-100">•</span>
-               <a href="#" className="text-gray-300 hover:text-[#25D366] transition-colors text-xl font-bold">WhatsApp</a>
+               <a href="#" className="text-white hover:text-white/70 underline transition-colors text-xl font-bold">INSTAGRAM</a>
+               <span className="text-white/40">•</span>
+               <a href="#" className="text-white hover:text-white/70 underline transition-colors text-xl font-bold">WHATSAPP</a>
             </div>
-            <p className="text-sm text-gray-200 font-bold uppercase tracking-[0.2em]">Hecho con amor en CBA 🇦🇷</p>
+            <p className="text-sm font-bold uppercase tracking-[0.2em] opacity-60">HECHO CON AMOR EN CBA 🇦🇷</p>
           </div>
         </div>
 
-        <div className="mt-20 pt-8 border-t border-gray-50 text-center">
-          <p className="text-gray-200 text-xs font-bold uppercase tracking-[0.4em]">
-            © 2026 Matita Librería • Todos los derechos reservados
+        <div className="w-full h-12 bg-black/10 flex items-center justify-center">
+          <p className="text-white text-[10px] font-bold uppercase tracking-[0.4em] opacity-80">
+            © 2026 MATITA LIBRERÍA • TODOS LOS DERECHOS RESERVADOS
           </p>
         </div>
       </footer>
+
+      {/* MENÚ LATERAL MÓVIL */}
+      {isMenuOpen && (
+        <div className="fixed inset-0 z-[100] flex animate-fadeIn">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsMenuOpen(false)}></div>
+          <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-2xl p-10 flex flex-col gap-10 border-l-[12px] border-[#fadb31] animate-slideUp">
+             <button onClick={() => setIsMenuOpen(false)} className="self-end text-6xl text-gray-200 hover:text-[#ea7e9c] transition-colors">×</button>
+             <div className="flex flex-col gap-8">
+               {navItems.map((item) => (
+                 <NavLink key={item.path} to={item.path} onClick={() => setIsMenuOpen(false)} className="text-3xl font-bold text-gray-600 hover:text-[#f6a118] transition-colors uppercase">
+                   {item.label}
+                 </NavLink>
+               ))}
+             </div>
+             <button onClick={handleLogout} className="mt-auto py-6 bg-gray-50 text-red-300 rounded-3xl font-bold text-2xl border-2 border-transparent active:border-red-100 uppercase">Salir 🚪</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default Layout;
+
