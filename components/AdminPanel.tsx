@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Product, Category, User, Sale, ColorStock } from '../types';
 import { useApp } from '../App';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
@@ -11,6 +12,7 @@ const getImgUrl = (id: string, w = 600) => {
 };
 
 const AdminPanel: React.FC = () => {
+  const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState<'dashboard' | 'inventory' | 'sales' | 'socios' | 'ideas' | 'design'>('dashboard');
@@ -26,7 +28,7 @@ const AdminPanel: React.FC = () => {
       <div className="max-w-xl mx-auto py-20 px-6 animate-fadeIn">
         <div className="bg-white rounded-[3rem] p-16 shadow-2xl border-4 border-[#fadb31] text-center space-y-10">
           <div className="text-9xl mb-4">👑</div>
-          <h2 className="text-5xl font-bold text-gray-800 uppercase">Panel Maestro</h2>
+          <h2 className="text-5xl font-bold text-gray-800 uppercase tracking-tighter">Panel Maestro</h2>
           <form onSubmit={handleAdminAuth} className="space-y-8">
             <input 
               type="password" 
@@ -39,6 +41,12 @@ const AdminPanel: React.FC = () => {
               Entrar
             </button>
           </form>
+          <button 
+            onClick={() => navigate('/')} 
+            className="text-gray-400 font-bold uppercase underline text-sm mt-4"
+          >
+            Volver a la Tienda
+          </button>
         </div>
       </div>
     );
@@ -50,32 +58,34 @@ const AdminPanel: React.FC = () => {
         <div>
           <h2 className="text-5xl md:text-6xl font-bold text-[#f6a118] uppercase">Gestión MATITA</h2>
           <div className="flex items-center gap-4 mt-2">
-            <p className="text-xl md:text-2xl text-gray-400 italic uppercase">Estadísticas y Control Real ✏️</p>
-            <button 
-              onClick={() => setIsAuthenticated(false)}
-              className="bg-red-50 text-red-400 px-4 py-1 rounded-full text-sm font-bold border border-red-100 hover:bg-red-500 hover:text-white transition-all uppercase"
-            >
-              Salir del Panel 🚪
-            </button>
+            <p className="text-xl md:text-2xl text-gray-400 italic uppercase">ESTADÍSTICAS Y CONTROL REAL ✏️</p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 justify-center">
-          {[
-            { id: 'dashboard', label: '📊 Stats' },
-            { id: 'inventory', label: '📦 Stock' },
-            { id: 'sales', label: '💸 Ventas' },
-            { id: 'socios', label: '👥 Socios' },
-            { id: 'ideas', label: '💡 Ideas' },
-            { id: 'design', label: '🎨 Marca' }
-          ].map(tab => (
-            <button 
-              key={tab.id} 
-              onClick={() => setActiveTab(tab.id as any)} 
-              className={`px-5 py-2 md:px-8 md:py-3 rounded-[1.5rem] text-lg md:text-xl font-bold transition-all uppercase ${activeTab === tab.id ? 'matita-gradient-orange text-white shadow-lg scale-110' : 'bg-white text-gray-400 hover:text-[#f6a118]'}`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap gap-4 justify-center items-center">
+          <div className="flex flex-wrap gap-2 justify-center">
+            {[
+              { id: 'dashboard', label: '📊 Stats' },
+              { id: 'inventory', label: '📦 Stock' },
+              { id: 'sales', label: '💸 Ventas' },
+              { id: 'socios', label: '👥 Socios' },
+              { id: 'ideas', label: '💡 Ideas' },
+              { id: 'design', label: '🎨 Marca' }
+            ].map(tab => (
+              <button 
+                key={tab.id} 
+                onClick={() => setActiveTab(tab.id as any)} 
+                className={`px-5 py-2 md:px-8 md:py-3 rounded-[1.5rem] text-lg md:text-xl font-bold transition-all uppercase ${activeTab === tab.id ? 'matita-gradient-orange text-white shadow-lg scale-110' : 'bg-white text-gray-400 hover:text-[#f6a118]'}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <button 
+            onClick={() => setIsAuthenticated(false)}
+            className="px-8 py-3 bg-[#ea7e9c] text-white rounded-2xl font-bold text-lg shadow-xl hover:scale-105 transition-all uppercase flex items-center gap-2 border-4 border-white"
+          >
+            Salir Admin 🚪
+          </button>
         </div>
       </div>
 
@@ -160,7 +170,7 @@ const Dashboard: React.FC = () => {
 
       {data.lowStock.length > 0 && (
         <div className="bg-red-50 p-8 rounded-[2.5rem] border-4 border-white shadow-sm">
-          <h4 className="text-2xl font-bold text-red-500 mb-4 flex items-center gap-2 uppercase">⚠️ Alerta de Reposición</h4>
+          <h4 className="text-2xl font-bold text-red-500 mb-4 flex items-center gap-2 uppercase">⚠️ ALERTA DE REPOSICIÓN</h4>
           <div className="flex flex-wrap gap-4">
              {data.lowStock.map((p:any) => (
                <div key={p.id} className="bg-white px-4 py-2 rounded-xl text-sm font-bold text-gray-500 border border-red-100 uppercase">
@@ -173,7 +183,7 @@ const Dashboard: React.FC = () => {
 
       <div className="grid lg:grid-cols-2 gap-16">
         <div className="space-y-6">
-          <h4 className="text-3xl font-bold text-gray-700 ml-4 uppercase">Tendencia de Ventas 💸</h4>
+          <h4 className="text-3xl font-bold text-gray-700 ml-4 uppercase">TENDENCIA DE VENTAS 💸</h4>
           <div className="h-[350px] w-full bg-[#fdfaf6] p-4 rounded-[2.5rem] border-2 border-white shadow-inner">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.salesHistory}>
@@ -188,7 +198,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="space-y-6">
-          <h4 className="text-3xl font-bold text-gray-700 ml-4 uppercase">Ventas por Categoría 🏷️</h4>
+          <h4 className="text-3xl font-bold text-gray-700 ml-4 uppercase">VENTAS POR CATEGORÍA 🏷️</h4>
           <div className="h-[350px] w-full bg-[#fdfaf6] p-4 rounded-[2.5rem] border-2 border-white shadow-inner">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.categoryStats}>
@@ -312,8 +322,8 @@ const InventoryManager: React.FC = () => {
       <div className="space-y-10">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
-             <h3 className="text-3xl font-bold text-gray-700 uppercase">Inventario 📦</h3>
-             <button onClick={exportInventory} className="text-[#f6a118] font-bold text-sm underline uppercase">Exportar CSV ⬇️</button>
+             <h3 className="text-3xl font-bold text-gray-700 uppercase tracking-tighter">INVENTARIO 📦</h3>
+             <button onClick={exportInventory} className="text-[#f6a118] font-bold text-sm underline uppercase">EXPORTAR CSV ⬇️</button>
           </div>
           <button 
             onClick={() => { 
@@ -322,7 +332,7 @@ const InventoryManager: React.FC = () => {
             }} 
             className="px-6 py-3 bg-[#f6a118] text-white rounded-2xl font-bold text-xl shadow-md hover:scale-105 transition-all uppercase"
           >
-            + NUEVO
+            + NUEVO ARTÍCULO
           </button>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
@@ -332,8 +342,8 @@ const InventoryManager: React.FC = () => {
               <h4 className="text-sm font-bold truncate text-gray-800 uppercase">{p.name}</h4>
               <p className="text-lg font-bold text-[#f6a118] mb-3">${p.price}</p>
               <div className="flex gap-2 mt-auto">
-                <button onClick={() => { setEditingProduct(p); setFormMode('edit'); }} className="flex-grow py-2 bg-white text-[#f6a118] rounded-xl font-bold border border-[#fadb31] text-xs uppercase">Editar</button>
-                <button onClick={async () => { if(confirm('¿Borrar?')) { await supabase.from('products').delete().eq('id', p.id); fetchProducts(); } }} className="text-red-200">🗑️</button>
+                <button onClick={() => { setEditingProduct(p); setFormMode('edit'); }} className="flex-grow py-2 bg-white text-[#f6a118] rounded-xl font-bold border border-[#fadb31] text-xs uppercase">EDITAR</button>
+                <button onClick={async () => { if(confirm('¿BORRAR?')) { await supabase.from('products').delete().eq('id', p.id); fetchProducts(); } }} className="text-red-200">🗑️</button>
               </div>
             </div>
           ))}
@@ -346,7 +356,7 @@ const InventoryManager: React.FC = () => {
     <div className="space-y-8 animate-fadeIn max-w-4xl mx-auto">
       <div className="flex items-center gap-6">
         <button onClick={() => setFormMode('list')} className="text-4xl hover:scale-110 transition-all uppercase">🔙</button>
-        <h3 className="text-3xl font-bold text-gray-800 uppercase">Editor de Stock</h3>
+        <h3 className="text-3xl font-bold text-gray-800 uppercase">EDITOR DE STOCK</h3>
       </div>
       
       <div className="bg-[#fef9eb] p-8 md:p-12 rounded-[3.5rem] border-4 border-white space-y-8 shadow-xl max-h-[85vh] overflow-y-auto scrollbar-hide">
@@ -407,7 +417,7 @@ const InventoryManager: React.FC = () => {
              disabled={isUploading}
              className="w-full py-8 bg-white border-4 border-dashed border-gray-200 text-gray-400 rounded-3xl text-xl font-bold hover:bg-gray-100 transition-all uppercase"
            >
-             {isUploading ? '📤 Subiendo...' : '📸 SUBIR FOTOS'}
+             {isUploading ? '📤 SUBIENDO...' : '📸 SUBIR FOTOS'}
            </button>
         </div>
 
@@ -445,8 +455,8 @@ const SalesManager: React.FC = () => {
   return (
     <div className="space-y-8 animate-fadeIn">
       <div className="flex justify-between items-center px-4">
-        <h3 className="text-3xl font-bold text-gray-700 uppercase">Historial de Ventas 💸</h3>
-        <button onClick={exportSales} className="text-[#f6a118] font-bold text-sm underline uppercase">Exportar CSV ⬇️</button>
+        <h3 className="text-3xl font-bold text-gray-700 uppercase">HISTORIAL DE VENTAS 💸</h3>
+        <button onClick={exportSales} className="text-[#f6a118] font-bold text-sm underline uppercase">EXPORTAR CSV ⬇️</button>
       </div>
       <div className="grid gap-4">
         {sales.map(s => (
@@ -503,10 +513,10 @@ const SociosManager: React.FC = () => {
     <div className="space-y-8 animate-fadeIn">
       <div className="flex justify-between items-center px-4">
         <div className="flex items-center gap-4">
-          <h3 className="text-3xl font-bold text-gray-700 uppercase">Socios del Club 👑</h3>
-          <button onClick={exportSocios} className="text-[#f6a118] font-bold text-sm underline uppercase">Exportar CSV ⬇️</button>
+          <h3 className="text-3xl font-bold text-gray-700 uppercase">SOCIOS DEL CLUB 👑</h3>
+          <button onClick={exportSocios} className="text-[#f6a118] font-bold text-sm underline uppercase">EXPORTAR CSV ⬇️</button>
         </div>
-        <span className="bg-[#fef9eb] text-[#f6a118] px-4 py-2 rounded-full font-bold uppercase">{socios.length} Miembros</span>
+        <span className="bg-[#fef9eb] text-[#f6a118] px-4 py-2 rounded-full font-bold uppercase">{socios.length} MIEMBROS</span>
       </div>
       
       <div className="grid gap-4">
@@ -531,7 +541,7 @@ const SociosManager: React.FC = () => {
                 ) : (
                   <div className="cursor-pointer text-right" onClick={() => { setEditingPointsId(s.id); setNewPoints(s.points); }}>
                     <p className="text-2xl font-bold text-[#f6a118] leading-none">{s.points}</p>
-                    <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Puntos ✨</p>
+                    <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">PUNTOS ✨</p>
                   </div>
                 )}
              </div>
@@ -555,7 +565,7 @@ const IdeasManager: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      <h3 className="text-3xl font-bold text-gray-700 uppercase">Buzón de Ideas 💡</h3>
+      <h3 className="text-3xl font-bold text-gray-700 uppercase">BUZÓN DE IDEAS 💡</h3>
       <div className="grid gap-6">
         {ideas.map(i => (
           <div key={i.id} className="bg-[#fef9eb] p-8 rounded-[3rem] border-4 border-white shadow-md">
@@ -602,19 +612,19 @@ const DesignManager: React.FC = () => {
     setLogoUrl(finalLogoId);
     setPreviewFile(null);
     setIsSaving(false);
-    alert('✨ Logo Guardado');
+    alert('✨ LOGO GUARDADO');
   };
 
   return (
     <div className="max-w-2xl mx-auto space-y-12 text-center py-6">
-      <h3 className="text-4xl font-bold text-[#f6a118] uppercase">Identidad de Marca 🎨</h3>
+      <h3 className="text-4xl font-bold text-[#f6a118] uppercase">IDENTIDAD DE MARCA 🎨</h3>
       <div className="bg-[#fef9eb] p-12 rounded-[4rem] shadow-xl border-4 border-white">
         <div className="w-48 h-48 bg-white rounded-full mx-auto shadow-inner flex items-center justify-center p-6 border-4 border-[#fadb31] cursor-pointer" onClick={() => fRef.current?.click()}>
            <img src={previewFile ? URL.createObjectURL(previewFile) : getImgUrl(logoUrl, 300)} className="w-full h-full object-contain" alt="Logo" />
         </div>
         <input type="file" ref={fRef} className="hidden" onChange={e => setPreviewFile(e.target.files?.[0] || null)} accept="image/*" />
         <button onClick={saveDesign} disabled={isSaving} className="w-full mt-10 py-5 matita-gradient-orange text-white rounded-[2rem] text-2xl font-bold shadow-lg uppercase">
-          {isSaving ? "Guardando..." : "Guardar Cambios ✨"}
+          {isSaving ? "GUARDANDO..." : "GUARDAR CAMBIOS ✨"}
         </button>
       </div>
     </div>
