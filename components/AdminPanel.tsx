@@ -1,6 +1,5 @@
 
-
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Product, Category, User, Sale, ColorStock } from '../types';
 import { useApp } from '../App';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
@@ -27,16 +26,16 @@ const AdminPanel: React.FC = () => {
       <div className="max-w-xl mx-auto py-20 px-6 animate-fadeIn">
         <div className="bg-white rounded-[3rem] p-16 shadow-2xl border-4 border-[#fadb31] text-center space-y-10">
           <div className="text-9xl mb-4">👑</div>
-          <h2 className="text-5xl font-bold text-gray-800">Panel Maestro</h2>
+          <h2 className="text-5xl font-bold text-gray-800 uppercase">Panel Maestro</h2>
           <form onSubmit={handleAdminAuth} className="space-y-8">
             <input 
               type="password" 
-              placeholder="Clave Matita" 
-              className="w-full text-3xl text-center shadow-inner py-5 bg-[#fef9eb] rounded-3xl outline-none" 
+              placeholder="CLAVE MATITA" 
+              className="w-full text-3xl text-center shadow-inner py-5 bg-[#fef9eb] rounded-3xl outline-none uppercase" 
               value={password} 
               onChange={(e) => setPassword(e.target.value)} 
             />
-            <button className="w-full py-6 matita-gradient-orange text-white rounded-[2rem] text-4xl font-bold shadow-lg hover:scale-105 transition-all">
+            <button className="w-full py-6 matita-gradient-orange text-white rounded-[2rem] text-4xl font-bold shadow-lg hover:scale-105 transition-all uppercase">
               Entrar
             </button>
           </form>
@@ -49,8 +48,16 @@ const AdminPanel: React.FC = () => {
     <div className="max-w-7xl mx-auto space-y-12 py-10 animate-fadeIn px-4">
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 border-b-4 border-[#fadb31]/20 pb-8">
         <div>
-          <h2 className="text-5xl md:text-6xl font-bold text-[#f6a118]">Gestión Matita</h2>
-          <p className="text-xl md:text-2xl text-gray-400 italic">Control Real ✏️</p>
+          <h2 className="text-5xl md:text-6xl font-bold text-[#f6a118] uppercase">Gestión MATITA</h2>
+          <div className="flex items-center gap-4 mt-2">
+            <p className="text-xl md:text-2xl text-gray-400 italic uppercase">Estadísticas y Control Real ✏️</p>
+            <button 
+              onClick={() => setIsAuthenticated(false)}
+              className="bg-red-50 text-red-400 px-4 py-1 rounded-full text-sm font-bold border border-red-100 hover:bg-red-500 hover:text-white transition-all uppercase"
+            >
+              Salir del Panel 🚪
+            </button>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2 justify-center">
           {[
@@ -64,7 +71,7 @@ const AdminPanel: React.FC = () => {
             <button 
               key={tab.id} 
               onClick={() => setActiveTab(tab.id as any)} 
-              className={`px-5 py-2 md:px-8 md:py-3 rounded-[1.5rem] text-lg md:text-xl font-bold transition-all ${activeTab === tab.id ? 'matita-gradient-orange text-white shadow-lg scale-110' : 'bg-white text-gray-400 hover:text-[#f6a118]'}`}
+              className={`px-5 py-2 md:px-8 md:py-3 rounded-[1.5rem] text-lg md:text-xl font-bold transition-all uppercase ${activeTab === tab.id ? 'matita-gradient-orange text-white shadow-lg scale-110' : 'bg-white text-gray-400 hover:text-[#f6a118]'}`}
             >
               {tab.label}
             </button>
@@ -84,12 +91,12 @@ const AdminPanel: React.FC = () => {
   );
 };
 
-// --- DASHBOARD COMPONENT ---
 const Dashboard: React.FC = () => {
   const { supabase } = useApp();
   const [data, setData] = useState<any>({ 
     salesHistory: [], 
     categoryStats: [], 
+    lowStock: [],
     totals: { sales: 0, users: 0, products: 0 } 
   });
 
@@ -97,9 +104,9 @@ const Dashboard: React.FC = () => {
     const fetchDashboard = async () => {
       const { data: sales } = await supabase.from('sales').select('*').order('created_at', { ascending: true });
       const { count: usersCount } = await supabase.from('users').select('*', { count: 'exact', head: true });
-      const { count: prodCount } = await supabase.from('products').select('*', { count: 'exact', head: true });
+      const { data: prods } = await supabase.from('products').select('*');
 
-      if (sales) {
+      if (sales && prods) {
         const history = sales.map((s:any) => ({ 
           date: new Date(s.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
           amount: s.total 
@@ -112,13 +119,19 @@ const Dashboard: React.FC = () => {
         });
         const categories = Object.keys(catMap).map(k => ({ name: k, total: catMap[k] }));
 
+        const lowStock = prods.filter((p:any) => {
+          const totalStock = p.colors?.reduce((acc:number, c:any) => acc + (Number(c.stock) || 0), 0) || 0;
+          return totalStock < 5;
+        });
+
         setData({
           salesHistory: history,
           categoryStats: categories,
+          lowStock,
           totals: {
             sales: sales.reduce((a:number, b:any) => a + b.total, 0),
             users: usersCount || 0,
-            products: prodCount || 0
+            products: prods.length || 0
           }
         });
       }
@@ -131,23 +144,36 @@ const Dashboard: React.FC = () => {
   return (
     <div className="space-y-16 animate-fadeIn">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-[#fef9eb] p-8 rounded-[2.5rem] text-center border-4 border-white shadow-sm overflow-hidden">
-          <p className="text-xl text-gray-400 font-bold uppercase">Total Ventas</p>
-          <p className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#f6a118] truncate">${data.totals.sales.toLocaleString()}</p>
+        <div className="bg-[#fef9eb] p-8 rounded-[2.5rem] text-center border-4 border-white shadow-sm">
+          <p className="text-xl text-gray-400 font-bold uppercase">Ingresos Totales</p>
+          <p className="text-4xl font-bold text-[#f6a118]">${data.totals.sales.toLocaleString()}</p>
         </div>
-        <div className="bg-[#fff1f2] p-8 rounded-[2.5rem] text-center border-4 border-white shadow-sm overflow-hidden">
+        <div className="bg-[#fff1f2] p-8 rounded-[2.5rem] text-center border-4 border-white shadow-sm">
           <p className="text-xl text-gray-400 font-bold uppercase">Socios</p>
-          <p className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#ea7e9c] truncate">{data.totals.users}</p>
+          <p className="text-4xl font-bold text-[#ea7e9c]">{data.totals.users}</p>
         </div>
-        <div className="bg-[#f0f9ff] p-8 rounded-[2.5rem] text-center border-4 border-white shadow-sm overflow-hidden">
-          <p className="text-xl text-gray-400 font-bold uppercase">Productos</p>
-          <p className="text-4xl md:text-5xl lg:text-6xl font-bold text-blue-400 truncate">{data.totals.products}</p>
+        <div className="bg-[#f0f9ff] p-8 rounded-[2.5rem] text-center border-4 border-white shadow-sm">
+          <p className="text-xl text-gray-400 font-bold uppercase">Items Catálogo</p>
+          <p className="text-4xl font-bold text-blue-400">{data.totals.products}</p>
         </div>
       </div>
 
+      {data.lowStock.length > 0 && (
+        <div className="bg-red-50 p-8 rounded-[2.5rem] border-4 border-white shadow-sm">
+          <h4 className="text-2xl font-bold text-red-500 mb-4 flex items-center gap-2 uppercase">⚠️ Alerta de Reposición</h4>
+          <div className="flex flex-wrap gap-4">
+             {data.lowStock.map((p:any) => (
+               <div key={p.id} className="bg-white px-4 py-2 rounded-xl text-sm font-bold text-gray-500 border border-red-100 uppercase">
+                 {p.name}
+               </div>
+             ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid lg:grid-cols-2 gap-16">
         <div className="space-y-6">
-          <h4 className="text-3xl font-bold text-gray-700 ml-4">Tendencia 💸</h4>
+          <h4 className="text-3xl font-bold text-gray-700 ml-4 uppercase">Tendencia de Ventas 💸</h4>
           <div className="h-[350px] w-full bg-[#fdfaf6] p-4 rounded-[2.5rem] border-2 border-white shadow-inner">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data.salesHistory}>
@@ -162,7 +188,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="space-y-6">
-          <h4 className="text-3xl font-bold text-gray-700 ml-4">Categorías 🏷️</h4>
+          <h4 className="text-3xl font-bold text-gray-700 ml-4 uppercase">Ventas por Categoría 🏷️</h4>
           <div className="h-[350px] w-full bg-[#fdfaf6] p-4 rounded-[2.5rem] border-2 border-white shadow-inner">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.categoryStats}>
@@ -184,7 +210,6 @@ const Dashboard: React.FC = () => {
   );
 };
 
-// --- INVENTORY MANAGER COMPONENT ---
 const InventoryManager: React.FC = () => {
   const { supabase } = useApp();
   const [products, setProducts] = useState<Product[]>([]);
@@ -212,7 +237,7 @@ const InventoryManager: React.FC = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'Inventario_Matita.csv';
+    a.download = 'Inventario_MATITA.csv';
     a.click();
   };
 
@@ -242,9 +267,8 @@ const InventoryManager: React.FC = () => {
       ? await supabase.from('products').update(p).eq('id', editingProduct.id)
       : await supabase.from('products').insert(p);
     
-    if (error) {
-      alert("Error: " + error.message);
-    } else {
+    if (error) alert("Error: " + error.message);
+    else {
       alert('✨ ¡Stock actualizado!');
       setFormMode('list'); 
       fetchProducts();
@@ -256,7 +280,6 @@ const InventoryManager: React.FC = () => {
     formData.append("file", file);
     formData.append("upload_preset", "Matita_web"); 
     formData.append("folder", "matita2026");
-
     try {
       const res = await fetch("https://api.cloudinary.com/v1_1/dllm8ggob/image/upload", {
         method: "POST",
@@ -273,15 +296,12 @@ const InventoryManager: React.FC = () => {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
     setIsUploading(true);
     const newImages = [...(editingProduct?.images || [])];
-    
     for (let i = 0; i < files.length; i++) {
       const publicId = await uploadImageToCloudinary(files[i]);
       if (publicId) newImages.push(publicId);
     }
-    
     setEditingProduct(prev => ({ ...prev!, images: newImages }));
     setIsUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -292,27 +312,27 @@ const InventoryManager: React.FC = () => {
       <div className="space-y-10">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <h3 className="text-3xl font-bold text-gray-700">Inventario 📦</h3>
-            <button onClick={exportInventory} className="text-gray-300 hover:text-[#f6a118] transition-colors text-sm font-bold border-b border-dashed">Exportar CSV ⬇️</button>
+             <h3 className="text-3xl font-bold text-gray-700 uppercase">Inventario 📦</h3>
+             <button onClick={exportInventory} className="text-[#f6a118] font-bold text-sm underline uppercase">Exportar CSV ⬇️</button>
           </div>
           <button 
             onClick={() => { 
               setEditingProduct({ name: '', price: 0, oldPrice: 0, points: 0, category: 'Escolar', colors: [{color: 'Único', stock: 10}], images: [] }); 
               setFormMode('edit'); 
             }} 
-            className="px-6 py-3 bg-[#f6a118] text-white rounded-2xl font-bold text-xl shadow-md hover:scale-105 transition-all"
+            className="px-6 py-3 bg-[#f6a118] text-white rounded-2xl font-bold text-xl shadow-md hover:scale-105 transition-all uppercase"
           >
-            + Nuevo
+            + NUEVO
           </button>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
           {products.map(p => (
             <div key={p.id} className="bg-gray-50 p-4 rounded-[2rem] border-2 border-white shadow-sm hover:border-[#fadb31] transition-all flex flex-col h-full">
               <img src={getImgUrl(p.images[0], 200)} className="w-full aspect-square object-cover rounded-2xl mb-3" />
-              <h4 className="text-sm font-bold truncate text-gray-800">{p.name}</h4>
+              <h4 className="text-sm font-bold truncate text-gray-800 uppercase">{p.name}</h4>
               <p className="text-lg font-bold text-[#f6a118] mb-3">${p.price}</p>
               <div className="flex gap-2 mt-auto">
-                <button onClick={() => { setEditingProduct(p); setFormMode('edit'); }} className="flex-grow py-2 bg-white text-[#f6a118] rounded-xl font-bold border border-[#fadb31] text-xs">Editar</button>
+                <button onClick={() => { setEditingProduct(p); setFormMode('edit'); }} className="flex-grow py-2 bg-white text-[#f6a118] rounded-xl font-bold border border-[#fadb31] text-xs uppercase">Editar</button>
                 <button onClick={async () => { if(confirm('¿Borrar?')) { await supabase.from('products').delete().eq('id', p.id); fetchProducts(); } }} className="text-red-200">🗑️</button>
               </div>
             </div>
@@ -325,20 +345,19 @@ const InventoryManager: React.FC = () => {
   return (
     <div className="space-y-8 animate-fadeIn max-w-4xl mx-auto">
       <div className="flex items-center gap-6">
-        <button onClick={() => setFormMode('list')} className="text-4xl hover:scale-110 transition-all">🔙</button>
-        <h3 className="text-3xl font-bold text-gray-800">Editor de Stock</h3>
+        <button onClick={() => setFormMode('list')} className="text-4xl hover:scale-110 transition-all uppercase">🔙</button>
+        <h3 className="text-3xl font-bold text-gray-800 uppercase">Editor de Stock</h3>
       </div>
       
-      <div className="bg-gray-50 p-8 md:p-12 rounded-[3.5rem] border-4 border-white space-y-8 shadow-xl max-h-[85vh] overflow-y-auto scrollbar-hide">
-        {/* Form content remains the same... */}
+      <div className="bg-[#fef9eb] p-8 md:p-12 rounded-[3.5rem] border-4 border-white space-y-8 shadow-xl max-h-[85vh] overflow-y-auto scrollbar-hide">
         <div className="grid md:grid-cols-2 gap-6">
            <div className="space-y-1">
-             <label className="text-sm font-bold text-gray-400 ml-4">Nombre del Tesoro</label>
-             <input type="text" className="w-full text-2xl p-4 rounded-2xl outline-none shadow-inner" value={editingProduct?.name} onChange={e => setEditingProduct({...editingProduct!, name: e.target.value})} />
+             <label className="text-sm font-bold text-gray-400 ml-4 uppercase">Nombre del Tesoro</label>
+             <input type="text" className="w-full text-2xl p-4 rounded-2xl outline-none shadow-inner uppercase" value={editingProduct?.name} onChange={e => setEditingProduct({...editingProduct!, name: e.target.value})} />
            </div>
            <div className="space-y-1">
-             <label className="text-sm font-bold text-gray-400 ml-4">Categoría</label>
-             <select className="w-full text-2xl p-4 rounded-2xl outline-none shadow-inner" value={editingProduct?.category} onChange={e => setEditingProduct({...editingProduct!, category: e.target.value as any})}>
+             <label className="text-sm font-bold text-gray-400 ml-4 uppercase">Categoría</label>
+             <select className="w-full text-2xl p-4 rounded-2xl outline-none shadow-inner uppercase" value={editingProduct?.category} onChange={e => setEditingProduct({...editingProduct!, category: e.target.value as any})}>
                {['Escolar', 'Regalaría', 'Oficina', 'Tecnología', 'Novedades', 'Ofertas'].map(c => <option key={c} value={c}>{c}</option>)}
              </select>
            </div>
@@ -346,28 +365,28 @@ const InventoryManager: React.FC = () => {
 
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-1">
-             <label className="text-xs font-bold text-gray-400 ml-2">Precio ($)</label>
-             <input type="number" className="w-full text-xl p-4 rounded-2xl outline-none shadow-inner" value={editingProduct?.price || ''} onChange={e => setEditingProduct({...editingProduct!, price: Number(e.target.value)})} />
+             <label className="text-xs font-bold text-gray-400 ml-2 uppercase">Precio ($)</label>
+             <input type="number" className="w-full text-xl p-4 rounded-2xl outline-none shadow-inner uppercase" value={editingProduct?.price || ''} onChange={e => setEditingProduct({...editingProduct!, price: Number(e.target.value)})} />
           </div>
           <div className="space-y-1">
-             <label className="text-xs font-bold text-gray-400 ml-2">Antes ($)</label>
-             <input type="number" className="w-full text-xl p-4 rounded-2xl outline-none shadow-inner" value={editingProduct?.oldPrice || ''} onChange={e => setEditingProduct({...editingProduct!, oldPrice: Number(e.target.value)})} />
+             <label className="text-xs font-bold text-gray-400 ml-2 uppercase">Antes ($)</label>
+             <input type="number" className="w-full text-xl p-4 rounded-2xl outline-none shadow-inner uppercase" value={editingProduct?.oldPrice || ''} onChange={e => setEditingProduct({...editingProduct!, oldPrice: Number(e.target.value)})} />
           </div>
           <div className="space-y-1">
-             <label className="text-xs font-bold text-gray-400 ml-2">Puntos ✨</label>
-             <input type="number" className="w-full text-xl p-4 rounded-2xl outline-none shadow-inner" value={editingProduct?.points || ''} onChange={e => setEditingProduct({...editingProduct!, points: Number(e.target.value)})} />
+             <label className="text-xs font-bold text-gray-400 ml-2 uppercase">Puntos ✨</label>
+             <input type="number" className="w-full text-xl p-4 rounded-2xl outline-none shadow-inner uppercase" value={editingProduct?.points || ''} onChange={e => setEditingProduct({...editingProduct!, points: Number(e.target.value)})} />
           </div>
         </div>
 
         <div className="space-y-4">
            <div className="flex justify-between items-center px-4">
-             <h4 className="text-xl font-bold text-gray-400">Variantes</h4>
-             <button onClick={() => setEditingProduct({...editingProduct!, colors: [...(editingProduct?.colors || []), {color: 'Nuevo', stock: 1}]})} className="text-[#f6a118] font-bold">+ Añadir</button>
+             <h4 className="text-xl font-bold text-gray-400 uppercase">Variantes</h4>
+             <button onClick={() => setEditingProduct({...editingProduct!, colors: [...(editingProduct?.colors || []), {color: 'Nuevo', stock: 1}]})} className="text-[#f6a118] font-bold uppercase">+ AÑADIR</button>
            </div>
            <div className="grid gap-3">
              {editingProduct?.colors?.map((c, i) => (
                <div key={i} className="flex items-center gap-4 bg-white p-4 rounded-2xl border-2 border-white shadow-sm">
-                  <input className="flex-grow border-none text-xl font-bold p-0 bg-transparent outline-none" value={c.color} onChange={e => {
+                  <input className="flex-grow border-none text-xl font-bold p-0 bg-transparent outline-none uppercase" value={c.color} onChange={e => {
                     const n = [...editingProduct.colors!]; n[i].color = e.target.value; setEditingProduct({...editingProduct, colors: n});
                   }} />
                   <div className="flex items-center gap-4 bg-gray-50 px-4 py-1 rounded-full border">
@@ -386,30 +405,20 @@ const InventoryManager: React.FC = () => {
            <button 
              onClick={() => fileInputRef.current?.click()} 
              disabled={isUploading}
-             className="w-full py-8 bg-white border-4 border-dashed border-gray-200 text-gray-400 rounded-3xl text-xl font-bold hover:bg-gray-100 transition-all"
+             className="w-full py-8 bg-white border-4 border-dashed border-gray-200 text-gray-400 rounded-3xl text-xl font-bold hover:bg-gray-100 transition-all uppercase"
            >
-             {isUploading ? '📤 Subiendo...' : '📸 Subir Fotos'}
+             {isUploading ? '📤 Subiendo...' : '📸 SUBIR FOTOS'}
            </button>
-           
-           <div className="flex gap-4 overflow-x-auto py-2 scrollbar-hide">
-              {editingProduct?.images?.map((img, idx) => (
-                <div key={idx} className="w-24 h-24 relative flex-shrink-0 group">
-                   <img src={getImgUrl(img, 150)} className="w-full h-full object-cover rounded-xl shadow-md border-2 border-white" />
-                   <button onClick={() => setEditingProduct({...editingProduct, images: editingProduct.images?.filter((_, i) => i !== idx)})} className="absolute top-1 right-1 bg-white rounded-full w-6 h-6 flex items-center justify-center text-[10px] shadow-md font-bold">×</button>
-                </div>
-              ))}
-           </div>
         </div>
 
-        <button onClick={handleSave} className="w-full py-6 matita-gradient-orange text-white rounded-[2rem] text-3xl font-bold shadow-xl border-4 border-white hover:scale-[1.02] active:scale-95 transition-all">
-          ¡Guardar Producto! ✨
+        <button onClick={handleSave} className="w-full py-6 matita-gradient-orange text-white rounded-[2rem] text-3xl font-bold shadow-xl border-4 border-white hover:scale-[1.02] active:scale-95 transition-all uppercase">
+          ¡GUARDAR PRODUCTO! ✨
         </button>
       </div>
     </div>
   );
 };
 
-// --- SALES MANAGER COMPONENT ---
 const SalesManager: React.FC = () => {
   const { supabase } = useApp();
   const [sales, setSales] = useState<any[]>([]);
@@ -422,19 +431,33 @@ const SalesManager: React.FC = () => {
     fetchSales();
   }, [supabase]);
 
+  const exportSales = () => {
+    const headers = "Folio,Cliente,Fecha,Total,Categoría\n";
+    const csvContent = sales.map(s => `"${s.id.slice(0,8)}","${s.user_name || 'Invitado'}","${new Date(s.created_at).toLocaleString()}",${s.total},"${s.category_summary || 'Venta'}"`).join("\n");
+    const blob = new Blob([headers + csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Ventas_MATITA.csv';
+    a.click();
+  };
+
   return (
     <div className="space-y-8 animate-fadeIn">
-      <h3 className="text-3xl font-bold text-gray-700">Historial de Ventas 💸</h3>
+      <div className="flex justify-between items-center px-4">
+        <h3 className="text-3xl font-bold text-gray-700 uppercase">Historial de Ventas 💸</h3>
+        <button onClick={exportSales} className="text-[#f6a118] font-bold text-sm underline uppercase">Exportar CSV ⬇️</button>
+      </div>
       <div className="grid gap-4">
         {sales.map(s => (
           <div key={s.id} className="bg-gray-50 p-6 rounded-[2rem] border-2 border-white shadow-sm flex justify-between items-center">
             <div>
-              <p className="text-xl font-bold text-gray-800">{s.user_name || 'Invitado'}</p>
-              <p className="text-sm text-gray-400">{new Date(s.created_at).toLocaleString()}</p>
+              <p className="text-xl font-bold text-gray-800 uppercase">#{s.id.slice(0,8)} - {s.user_name || 'Invitado'}</p>
+              <p className="text-sm text-gray-400 uppercase">{new Date(s.created_at).toLocaleString()}</p>
             </div>
             <div className="text-right">
               <p className="text-3xl font-bold text-[#f6a118]">${s.total}</p>
-              <p className="text-xs text-gray-300 font-bold uppercase">{s.category_summary || 'Venta'}</p>
+              <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest">{s.category_summary || 'Venta'}</p>
             </div>
           </div>
         ))}
@@ -443,7 +466,6 @@ const SalesManager: React.FC = () => {
   );
 };
 
-// --- SOCIOS MANAGER COMPONENT ---
 const SociosManager: React.FC = () => {
   const { supabase } = useApp();
   const [socios, setSocios] = useState<User[]>([]);
@@ -455,18 +477,16 @@ const SociosManager: React.FC = () => {
     if (data) setSocios(data.map((u:any) => ({ ...u, isSocio: u.is_socio, isAdmin: u.is_admin })));
   };
 
-  useEffect(() => {
-    fetchSocios();
-  }, [supabase]);
+  useEffect(() => { fetchSocios(); }, [supabase]);
 
   const exportSocios = () => {
-    const headers = "Nombre,Email,Puntos,Es Socio\n";
+    const headers = "Nombre,Email,Puntos,Socio\n";
     const csvContent = socios.map(s => `"${s.name}","${s.email}",${s.points},${s.isSocio}`).join("\n");
     const blob = new Blob([headers + csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'Socios_Matita.csv';
+    a.download = 'Socios_MATITA.csv';
     a.click();
   };
 
@@ -476,20 +496,6 @@ const SociosManager: React.FC = () => {
       alert('¡Puntos actualizados! ✨');
       setEditingPointsId(null);
       fetchSocios();
-    } else {
-      alert('Error al actualizar puntos ❌');
-    }
-  };
-
-  const handleDeleteSocio = async (id: string, name: string) => {
-    if (confirm(`¿Eliminar a ${name} del Club?`)) {
-      const { error } = await supabase.from('users').delete().eq('id', id);
-      if (!error) {
-        alert('Socio eliminado 🗑️');
-        fetchSocios();
-      } else {
-        alert('No se pudo eliminar ❌');
-      }
     }
   };
 
@@ -497,39 +503,37 @@ const SociosManager: React.FC = () => {
     <div className="space-y-8 animate-fadeIn">
       <div className="flex justify-between items-center px-4">
         <div className="flex items-center gap-4">
-          <h3 className="text-3xl font-bold text-gray-700">Miembros del Club 👑</h3>
-          <button onClick={exportSocios} className="text-gray-300 hover:text-[#f6a118] transition-colors text-sm font-bold border-b border-dashed">Exportar CSV ⬇️</button>
+          <h3 className="text-3xl font-bold text-gray-700 uppercase">Socios del Club 👑</h3>
+          <button onClick={exportSocios} className="text-[#f6a118] font-bold text-sm underline uppercase">Exportar CSV ⬇️</button>
         </div>
-        <span className="bg-[#fef9eb] text-[#f6a118] px-4 py-2 rounded-full font-bold">{socios.length} Socios</span>
+        <span className="bg-[#fef9eb] text-[#f6a118] px-4 py-2 rounded-full font-bold uppercase">{socios.length} Miembros</span>
       </div>
       
       <div className="grid gap-4">
         {socios.map(s => (
-          <div key={s.id} className="bg-white p-6 rounded-[2rem] border-2 border-gray-50 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 hover:border-[#fadb31] transition-all">
+          <div key={s.id} className="bg-white p-6 rounded-[2rem] border-2 border-gray-50 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
              <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-[#fef9eb] rounded-full flex items-center justify-center text-2xl">
                   {s.isSocio ? '👑' : '👤'}
                 </div>
                 <div>
-                   <h4 className="text-xl font-bold text-gray-800">{s.name}</h4>
-                   <p className="text-sm text-gray-400">{s.email}</p>
+                   <h4 className="text-xl font-bold text-gray-800 uppercase">{s.name}</h4>
+                   <p className="text-sm text-gray-400 uppercase">{s.email}</p>
                 </div>
              </div>
-
              <div className="flex items-center gap-6">
                 {editingPointsId === s.id ? (
                   <div className="flex items-center gap-2">
-                    <input type="number" className="w-20 p-2 text-center border-2 rounded-xl" value={newPoints} onChange={e => setNewPoints(Number(e.target.value))} />
-                    <button onClick={() => handleUpdatePoints(s.id)} className="bg-green-500 text-white p-2 rounded-xl">✓</button>
-                    <button onClick={() => setEditingPointsId(null)} className="bg-gray-100 text-gray-400 p-2 rounded-xl">×</button>
+                    <input type="number" className="w-20 p-2 text-center border-2 rounded-xl uppercase" value={newPoints} onChange={e => setNewPoints(Number(e.target.value))} />
+                    <button onClick={() => handleUpdatePoints(s.id)} className="bg-green-500 text-white p-2 rounded-xl uppercase">✓</button>
+                    <button onClick={() => setEditingPointsId(null)} className="bg-gray-100 text-gray-400 p-2 rounded-xl uppercase">×</button>
                   </div>
                 ) : (
                   <div className="cursor-pointer text-right" onClick={() => { setEditingPointsId(s.id); setNewPoints(s.points); }}>
                     <p className="text-2xl font-bold text-[#f6a118] leading-none">{s.points}</p>
-                    <p className="text-[10px] font-bold text-gray-300 uppercase">Puntos ✨</p>
+                    <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Puntos ✨</p>
                   </div>
                 )}
-                <button onClick={() => handleDeleteSocio(s.id, s.name)} className="text-red-200 hover:text-red-500 p-2">🗑️</button>
              </div>
           </div>
         ))}
@@ -538,7 +542,6 @@ const SociosManager: React.FC = () => {
   );
 };
 
-// --- IDEAS MANAGER COMPONENT ---
 const IdeasManager: React.FC = () => {
   const { supabase } = useApp();
   const [ideas, setIdeas] = useState<any[]>([]);
@@ -552,13 +555,13 @@ const IdeasManager: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      <h3 className="text-3xl font-bold text-gray-700">Buzón de Ideas 💡</h3>
+      <h3 className="text-3xl font-bold text-gray-700 uppercase">Buzón de Ideas 💡</h3>
       <div className="grid gap-6">
         {ideas.map(i => (
           <div key={i.id} className="bg-[#fef9eb] p-8 rounded-[3rem] border-4 border-white shadow-md">
-             <p className="text-2xl font-bold text-gray-800 mb-2 italic">"{i.title}"</p>
-             <p className="text-lg text-gray-500">{i.content}</p>
-             <p className="mt-4 text-sm text-[#f6a118] font-bold">- {i.user_name}</p>
+             <p className="text-2xl font-bold text-gray-800 mb-2 italic uppercase">"{i.title}"</p>
+             <p className="text-lg text-gray-500 uppercase">{i.content}</p>
+             <p className="mt-4 text-sm text-[#f6a118] font-bold uppercase">- {i.user_name}</p>
           </div>
         ))}
       </div>
@@ -566,7 +569,6 @@ const IdeasManager: React.FC = () => {
   );
 };
 
-// --- DESIGN MANAGER COMPONENT ---
 const DesignManager: React.FC = () => {
   const { logoUrl, setLogoUrl, supabase } = useApp();
   const fRef = useRef<HTMLInputElement>(null);
@@ -589,11 +591,6 @@ const DesignManager: React.FC = () => {
     }
   };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) setPreviewFile(file);
-  };
-
   const saveDesign = async () => {
     setIsSaving(true);
     let finalLogoId = logoUrl;
@@ -605,18 +602,18 @@ const DesignManager: React.FC = () => {
     setLogoUrl(finalLogoId);
     setPreviewFile(null);
     setIsSaving(false);
-    alert('Logo Guardado ✨');
+    alert('✨ Logo Guardado');
   };
 
   return (
     <div className="max-w-2xl mx-auto space-y-12 text-center py-6">
-      <h3 className="text-4xl font-bold text-[#f6a118]">Imagen de Marca 🎨</h3>
-      <div className="bg-white p-12 rounded-[4rem] shadow-xl border-[8px] border-[#fef9eb]">
-        <div className="w-48 h-48 bg-[#fef9eb] rounded-full mx-auto shadow-inner flex items-center justify-center p-6 border-4 border-white cursor-pointer" onClick={() => fRef.current?.click()}>
+      <h3 className="text-4xl font-bold text-[#f6a118] uppercase">Identidad de Marca 🎨</h3>
+      <div className="bg-[#fef9eb] p-12 rounded-[4rem] shadow-xl border-4 border-white">
+        <div className="w-48 h-48 bg-white rounded-full mx-auto shadow-inner flex items-center justify-center p-6 border-4 border-[#fadb31] cursor-pointer" onClick={() => fRef.current?.click()}>
            <img src={previewFile ? URL.createObjectURL(previewFile) : getImgUrl(logoUrl, 300)} className="w-full h-full object-contain" alt="Logo" />
         </div>
-        <input type="file" ref={fRef} className="hidden" onChange={handleLogoChange} accept="image/*" />
-        <button onClick={saveDesign} disabled={isSaving} className="w-full mt-10 py-5 matita-gradient-orange text-white rounded-[2rem] text-2xl font-bold shadow-lg">
+        <input type="file" ref={fRef} className="hidden" onChange={e => setPreviewFile(e.target.files?.[0] || null)} accept="image/*" />
+        <button onClick={saveDesign} disabled={isSaving} className="w-full mt-10 py-5 matita-gradient-orange text-white rounded-[2rem] text-2xl font-bold shadow-lg uppercase">
           {isSaving ? "Guardando..." : "Guardar Cambios ✨"}
         </button>
       </div>
