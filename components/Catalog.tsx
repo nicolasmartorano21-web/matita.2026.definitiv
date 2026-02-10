@@ -16,11 +16,9 @@ const Catalog: React.FC<CatalogProps> = ({ category }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'priceLow' | 'priceHigh' | 'name'>('recent');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const fetchProducts = async () => {
     setLoading(true);
-    setError(null);
     try {
       const { data, error: fetchError } = await supabase
         .from('products')
@@ -44,7 +42,6 @@ const Catalog: React.FC<CatalogProps> = ({ category }) => {
       }
     } catch (err: any) {
       console.error("Error cargando productos:", err);
-      setError("No pudimos conectar con la tienda. Revisa tu internet.");
     } finally {
       setLoading(false);
     }
@@ -54,14 +51,18 @@ const Catalog: React.FC<CatalogProps> = ({ category }) => {
     fetchProducts();
   }, [supabase]);
 
+  // Función para comparar sin acentos y evitar errores en Vercel/Producción. Maneja casos nulos.
+  const normalize = (s: string | null | undefined) => (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
   const sortedAndFilteredProducts = useMemo(() => {
     let filtered = products.filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
       if (category === 'Favorites') return matchesSearch && favorites.includes(p.id);
       if (category === 'Catalog') return matchesSearch;
       if (category === 'Ofertas') return matchesSearch && (p.oldPrice !== null || p.category === 'Ofertas');
-      // Comparación flexible para evitar errores de mayúsculas/minúsculas
-      return matchesSearch && p.category.toLowerCase() === category.toLowerCase();
+      
+      // Comparamos normalizando para que 'Regalaría' coincida con 'Regaleria' sin importar acentos
+      return matchesSearch && normalize(p.category) === normalize(category);
     });
 
     return [...filtered].sort((a, b) => {
@@ -72,7 +73,7 @@ const Catalog: React.FC<CatalogProps> = ({ category }) => {
     });
   }, [category, searchTerm, favorites, products, sortBy]);
 
-  // CATEGORÍAS REORDENADAS: Escolar -> Oficina -> Tecnología -> Novedades -> Regalería General -> Ofertas
+  // Lista de categorías con las rutas exactas definidas en App.tsx
   const categoryList: {label: string, cat: Category, icon: string, route: string}[] = [
     { label: 'ESCOLAR', cat: 'Escolar', icon: '✏️', route: '/escolar' },
     { label: 'OFICINA', cat: 'Oficina', icon: '💼', route: '/oficina' },
@@ -89,23 +90,22 @@ const Catalog: React.FC<CatalogProps> = ({ category }) => {
           <div className="absolute inset-0 border-8 border-gray-100 rounded-full"></div>
           <div className="absolute inset-0 border-8 border-transparent border-t-[#fadb31] rounded-full animate-spin"></div>
         </div>
-        <p className="text-[#f6a118] font-bold animate-pulse text-3xl text-center px-6 uppercase">ABRIENDO EL MUNDO MATITA... ✨</p>
+        <p className="text-[#f6a118] font-bold animate-pulse text-3xl text-center px-6 uppercase tracking-tighter">ABRIENDO EL MUNDO MATITA... ✨</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-12 animate-fadeIn pb-24">
-      {/* Título y Buscador Refinado */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-10">
-        <h2 className="text-6xl md:text-8xl font-matita font-bold text-[#f6a118] drop-shadow-sm uppercase">
+        <h2 className="text-6xl md:text-8xl font-matita font-bold text-[#f6a118] drop-shadow-sm uppercase tracking-tighter">
           {category === 'Catalog' ? 'EXPLORAR' : category === 'Regalaría' ? 'REGALERÍA GENERAL' : category.toUpperCase()}
         </h2>
         <div className="flex flex-col md:flex-row gap-4 w-full max-w-4xl">
           <div className="relative flex-grow">
             <input
               type="text"
-              placeholder="Buscar tesoros... 🔍"
+              placeholder="BUSCAR TESOROS... 🔍"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-8 py-5 rounded-[2rem] border-4 border-[#fadb31]/30 text-xl font-matita shadow-lg focus:border-[#fadb31] focus:ring-[15px] focus:ring-[#fadb31]/5 outline-none transition-all placeholder:text-gray-300 bg-white uppercase"
@@ -117,10 +117,10 @@ const Catalog: React.FC<CatalogProps> = ({ category }) => {
               onChange={(e) => setSortBy(e.target.value as any)}
               className="appearance-none w-full px-8 py-5 pr-12 rounded-[2rem] border-4 border-[#fadb31]/30 text-lg font-bold text-gray-400 bg-white outline-none cursor-pointer hover:border-[#fadb31] transition-colors shadow-lg uppercase"
             >
-              <option value="recent">Recientes ✨</option>
-              <option value="priceLow">Menor precio ⬇️</option>
-              <option value="priceHigh">Mayor precio ⬆️</option>
-              <option value="name">Nombre A-Z 📝</option>
+              <option value="recent">RECIENTES ✨</option>
+              <option value="priceLow">MENOR PRECIO ⬇️</option>
+              <option value="priceHigh">MAYOR PRECIO ⬆️</option>
+              <option value="name">NOMBRE A-Z 📝</option>
             </select>
             <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-[#f6a118]">
                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" strokeWidth={3}/></svg>
@@ -129,7 +129,6 @@ const Catalog: React.FC<CatalogProps> = ({ category }) => {
         </div>
       </div>
 
-      {/* BARRA DE CATEGORÍAS */}
       <div className="w-full relative py-2 border-y-2 border-[#fadb31]/10">
         <div className="flex overflow-x-auto gap-4 py-4 px-2 scrollbar-hide snap-x items-center -mx-4">
            <button 
@@ -168,12 +167,12 @@ const Catalog: React.FC<CatalogProps> = ({ category }) => {
       {sortedAndFilteredProducts.length === 0 && (
         <div className="text-center py-40 flex flex-col items-center animate-fadeIn">
           <div className="w-40 h-40 bg-white rounded-full flex items-center justify-center text-7xl shadow-inner border-4 border-gray-50 mb-8 opacity-40">🔎</div>
-          <p className="text-3xl font-matita text-gray-300 italic px-6 uppercase">"No encontramos resultados para esta búsqueda."</p>
+          <p className="text-3xl font-matita text-gray-300 italic px-6 uppercase tracking-tighter">"NO ENCONTRAMOS RESULTADOS PARA ESTA BÚSQUEDA."</p>
           <button 
             onClick={() => {setSearchTerm(''); setSortBy('recent')}} 
             className="mt-8 px-12 py-4 bg-[#fadb31] text-white rounded-full text-xl font-bold shadow-xl hover:scale-105 active:scale-95 transition-all uppercase"
           >
-            Limpiar filtros ✨
+            LIMPIAR FILTROS ✨
           </button>
         </div>
       )}
