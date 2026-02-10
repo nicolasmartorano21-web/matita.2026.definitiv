@@ -60,24 +60,26 @@ const Catalog: React.FC<CatalogProps> = ({ category }) => {
       if (category === 'Favorites') return matchesSearch && favorites.includes(p.id);
       if (category === 'Catalog') return matchesSearch;
       if (category === 'Ofertas') return matchesSearch && (p.oldPrice !== null || p.category === 'Ofertas');
-      return matchesSearch && p.category === category;
+      // Comparación flexible para evitar errores de mayúsculas/minúsculas
+      return matchesSearch && p.category.toLowerCase() === category.toLowerCase();
     });
 
     return [...filtered].sort((a, b) => {
       if (sortBy === 'priceLow') return a.price - b.price;
       if (sortBy === 'priceHigh') return b.price - a.price;
       if (sortBy === 'name') return a.name.localeCompare(b.name);
-      return 0; // 'recent' is default by fetch order
+      return 0;
     });
   }, [category, searchTerm, favorites, products, sortBy]);
 
-  const categoryList: {label: string, cat: Category, icon: string}[] = [
-    { label: 'Escolar', cat: 'Escolar', icon: '✏️' },
-    { label: 'Regalaría', cat: 'Regalaría', icon: '🎁' },
-    { label: 'Oficina', cat: 'Oficina', icon: '💼' },
-    { label: 'Tecnología', cat: 'Tecnología', icon: '🎧' },
-    { label: 'Novedades', cat: 'Novedades', icon: '✨' },
-    { label: 'Ofertas', cat: 'Ofertas', icon: '🏷️' }
+  // CATEGORÍAS REORDENADAS: Escolar -> Oficina -> Tecnología -> Novedades -> Regalería General -> Ofertas
+  const categoryList: {label: string, cat: Category, icon: string, route: string}[] = [
+    { label: 'ESCOLAR', cat: 'Escolar', icon: '✏️', route: '/escolar' },
+    { label: 'OFICINA', cat: 'Oficina', icon: '💼', route: '/oficina' },
+    { label: 'TECNOLOGÍA', cat: 'Tecnología', icon: '🎧', route: '/tecnologia' },
+    { label: 'NOVEDADES', cat: 'Novedades', icon: '✨', route: '/novedades' },
+    { label: 'REGALERÍA GENERAL', cat: 'Regalaría', icon: '🛍️', route: '/regaleriageneral' },
+    { label: 'OFERTAS', cat: 'Ofertas', icon: '🏷️', route: '/ofertas' }
   ];
 
   if (loading) {
@@ -87,109 +89,92 @@ const Catalog: React.FC<CatalogProps> = ({ category }) => {
           <div className="absolute inset-0 border-8 border-gray-100 rounded-full"></div>
           <div className="absolute inset-0 border-8 border-transparent border-t-[#fadb31] rounded-full animate-spin"></div>
         </div>
-        <p className="text-[#f6a118] font-bold animate-pulse text-3xl text-center px-6">Abriendo el mundo Matita... ✨</p>
+        <p className="text-[#f6a118] font-bold animate-pulse text-3xl text-center px-6 uppercase">ABRIENDO EL MUNDO MATITA... ✨</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-12 animate-fadeIn pb-24">
-      {/* Título y Buscador */}
+      {/* Título y Buscador Refinado */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-10">
-        <h2 className="text-6xl md:text-8xl font-matita font-bold text-[#f6a118] drop-shadow-sm">
-          {category === 'Catalog' ? 'Mundo Matita' : category}
+        <h2 className="text-6xl md:text-8xl font-matita font-bold text-[#f6a118] drop-shadow-sm uppercase">
+          {category === 'Catalog' ? 'EXPLORAR' : category === 'Regalaría' ? 'REGALERÍA GENERAL' : category.toUpperCase()}
         </h2>
         <div className="flex flex-col md:flex-row gap-4 w-full max-w-4xl">
           <div className="relative flex-grow">
             <input
               type="text"
-              placeholder="¿Qué buscamos hoy? 🔍"
+              placeholder="Buscar tesoros... 🔍"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-8 py-5 rounded-[2rem] border-4 border-[#fadb31] text-xl font-matita shadow-lg focus:ring-[15px] focus:ring-[#fadb31]/10 outline-none transition-all placeholder:text-gray-200"
+              className="w-full px-8 py-5 rounded-[2rem] border-4 border-[#fadb31]/30 text-xl font-matita shadow-lg focus:border-[#fadb31] focus:ring-[15px] focus:ring-[#fadb31]/5 outline-none transition-all placeholder:text-gray-300 bg-white uppercase"
             />
           </div>
-          <select 
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-            className="px-6 py-4 rounded-[2rem] border-4 border-[#fadb31]/30 text-lg font-bold text-gray-400 bg-white outline-none cursor-pointer hover:border-[#fadb31] transition-colors"
-          >
-            <option value="recent">Más recientes ✨</option>
-            <option value="priceLow">Menor precio ⬇️</option>
-            <option value="priceHigh">Mayor precio ⬆️</option>
-            <option value="name">Nombre A-Z 📝</option>
-          </select>
+          <div className="relative shrink-0">
+             <select 
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="appearance-none w-full px-8 py-5 pr-12 rounded-[2rem] border-4 border-[#fadb31]/30 text-lg font-bold text-gray-400 bg-white outline-none cursor-pointer hover:border-[#fadb31] transition-colors shadow-lg uppercase"
+            >
+              <option value="recent">Recientes ✨</option>
+              <option value="priceLow">Menor precio ⬇️</option>
+              <option value="priceHigh">Mayor precio ⬆️</option>
+              <option value="name">Nombre A-Z 📝</option>
+            </select>
+            <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-[#f6a118]">
+               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" strokeWidth={3}/></svg>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* BARRA DE CATEGORÍAS */}
-      <div className="w-full relative py-2">
-        <div className="flex overflow-x-auto gap-6 py-4 px-2 scrollbar-hide snap-x items-center -mx-4">
+      <div className="w-full relative py-2 border-y-2 border-[#fadb31]/10">
+        <div className="flex overflow-x-auto gap-4 py-4 px-2 scrollbar-hide snap-x items-center -mx-4">
            <button 
              onClick={() => navigate('/catalog')}
-             className={`snap-start px-8 py-4 rounded-full text-2xl font-bold transition-all whitespace-nowrap shadow-md border-2 flex items-center gap-3 ${
+             className={`snap-start px-8 py-3 rounded-full text-xl font-bold transition-all whitespace-nowrap border-2 flex items-center gap-3 uppercase ${
                category === 'Catalog' 
-               ? 'matita-gradient-orange text-white border-white scale-105' 
-               : 'bg-white text-gray-400 border-transparent hover:border-[#fadb31]'
+               ? 'bg-[#f6a118] text-white border-[#f6a118] shadow-lg scale-105' 
+               : 'bg-white text-gray-400 border-gray-100 hover:border-[#fadb31]'
              }`}
            >
-             <span className="text-3xl">🌈</span> Todo
+             <span className="text-2xl">🌈</span> TODOS
            </button>
 
            {categoryList.map(item => (
              <button 
                key={item.cat}
-               onClick={() => navigate(`/${item.cat.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`)}
-               className={`snap-start px-8 py-4 rounded-full text-2xl font-bold transition-all whitespace-nowrap shadow-md border-2 flex items-center gap-3 ${
+               onClick={() => navigate(item.route)}
+               className={`snap-start px-8 py-3 rounded-full text-xl font-bold transition-all whitespace-nowrap border-2 flex items-center gap-3 uppercase ${
                  category === item.cat 
-                 ? 'matita-gradient-orange text-white border-white scale-105' 
-                 : 'bg-white text-gray-400 border-transparent hover:border-[#fadb31]'
+                 ? 'bg-[#f6a118] text-white border-[#f6a118] shadow-lg scale-105' 
+                 : 'bg-white text-gray-400 border-gray-100 hover:border-[#fadb31]'
                }`}
              >
-               <span className="text-3xl">{item.icon}</span> {item.label}
+               <span className="text-2xl">{item.icon}</span> {item.label}
              </button>
            ))}
         </div>
       </div>
 
-      {/* Grilla de Productos */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-12 gap-y-16">
         {sortedAndFilteredProducts.map(product => (
           <ProductCard key={product.id} product={product} />
         ))}
       </div>
 
-      {/* Sección de Comunidad / Testimonios */}
-      {category === 'Catalog' && (
-        <div className="mt-32 py-20 bg-white rounded-[4rem] shadow-xl border-8 border-[#fef9eb] relative overflow-hidden text-center">
-           <div className="absolute top-0 left-0 w-full h-2 matita-gradient-orange opacity-20"></div>
-           <h3 className="text-5xl font-logo text-[#ea7e9c] mb-12">Lo que dicen en el Club ✨</h3>
-           <div className="grid md:grid-cols-3 gap-12 px-10">
-              <div className="space-y-4">
-                <div className="text-4xl">💖</div>
-                <p className="text-xl text-gray-500 italic">"Los productos más lindos de La Calera. Cada detalle es amor puro."</p>
-                <p className="font-bold text-[#f6a118]">- Sofi G.</p>
-              </div>
-              <div className="space-y-4 border-x-2 border-[#fef9eb] px-10">
-                <div className="text-4xl">⭐</div>
-                <p className="text-xl text-gray-500 italic">"Canjeé mis puntos por un cupón y me salvó el regalo de cumple."</p>
-                <p className="font-bold text-[#f6a118]">- Martu P.</p>
-              </div>
-              <div className="space-y-4">
-                <div className="text-4xl">🖋️</div>
-                <p className="text-xl text-gray-500 italic">"Calidad increíble y la atención por WhatsApp es súper rápida."</p>
-                <p className="font-bold text-[#f6a118]">- Facu L.</p>
-              </div>
-           </div>
-        </div>
-      )}
-
-      {/* Empty State */}
       {sortedAndFilteredProducts.length === 0 && (
-        <div className="text-center py-40 bg-white/40 rounded-[4rem] border-4 border-dashed border-white flex flex-col items-center">
-          <div className="text-8xl mb-6 grayscale opacity-20">📦</div>
-          <p className="text-4xl font-matita text-gray-300 italic px-6">"Aún no encontramos tesoros en esta búsqueda."</p>
-          <button onClick={() => {setSearchTerm(''); setSortBy('recent')}} className="mt-8 px-10 py-4 bg-[#fadb31] text-white rounded-full text-xl font-bold shadow-md">Limpiar Filtros</button>
+        <div className="text-center py-40 flex flex-col items-center animate-fadeIn">
+          <div className="w-40 h-40 bg-white rounded-full flex items-center justify-center text-7xl shadow-inner border-4 border-gray-50 mb-8 opacity-40">🔎</div>
+          <p className="text-3xl font-matita text-gray-300 italic px-6 uppercase">"No encontramos resultados para esta búsqueda."</p>
+          <button 
+            onClick={() => {setSearchTerm(''); setSortBy('recent')}} 
+            className="mt-8 px-12 py-4 bg-[#fadb31] text-white rounded-full text-xl font-bold shadow-xl hover:scale-105 active:scale-95 transition-all uppercase"
+          >
+            Limpiar filtros ✨
+          </button>
         </div>
       )}
     </div>
