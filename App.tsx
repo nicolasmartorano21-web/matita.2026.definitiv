@@ -11,10 +11,17 @@ import Ideas from './components/Ideas';
 import Contact from './components/Contact';
 import { Product, CartItem, User, Category } from './types';
 
-const SUPABASE_URL = 'https://jjgvfzaxcxfgyziikybd.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_hNWUKMZrLljdMaVN8NgWcw_b9UR3nVS';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+export interface ToastMessage {
+  id: string;
+  title: string;
+  description: string;
+  type: 'success' | 'error' | 'info';
+}
 
 interface AppContextType {
   user: User | null;
@@ -28,6 +35,7 @@ interface AppContextType {
   logoUrl: string;
   setLogoUrl: (url: string) => void;
   supabase: SupabaseClient;
+  showToast: (title: string, description: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -41,18 +49,35 @@ export const useApp = () => {
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loadingSession, setLoadingSession] = useState(true);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    const savedCart = localStorage.getItem('matita_cart');
+    return savedCart ? JSON.parse(savedCart) : [];
+  });
   const [favorites, setFavorites] = useState<string[]>([]);
-  // Logo por defecto robusto (Cloudinary es más confiable que imgbb)
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [logoUrl, setLogoUrl] = useState<string>(() => {
     return localStorage.getItem('matita_cached_logo') || "https://res.cloudinary.com/dllm8ggob/image/upload/v1740628230/branding/logo_default.png";
   });
 
   const clearCart = useCallback(() => setCart([]), []);
 
+  // Bloquear el botón "Atrás" del navegador para que no salga de la app
+  useEffect(() => {
+    // Empujar un estado extra al historial para tener dónde "atrapar" el back
+    window.history.pushState({ matita: true }, '', window.location.href);
+
+    const handlePopState = () => {
+      // Cuando el usuario presiona Atrás, re-empujamos el estado para quedarnos
+      window.history.pushState({ matita: true }, '', window.location.href);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+
   useEffect(() => {
     const initApp = async () => {
-      // 1. Recuperar datos locales de inmediato
       const savedUser = localStorage.getItem('matita_persisted_user');
       const savedFavs = localStorage.getItem('matita_favs');
       
@@ -64,7 +89,6 @@ const App: React.FC = () => {
       if (savedFavs) setFavorites(JSON.parse(savedFavs));
 
       try {
-        // 2. Verificar sesión real
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (session?.user && !sessionError) {
@@ -88,7 +112,6 @@ const App: React.FC = () => {
           }
         }
 
-        // 3. Cargar Logo con caché para la próxima vez
         const { data: configData } = await supabase
           .from('site_config')
           .select('logo_url')
@@ -143,8 +166,20 @@ const App: React.FC = () => {
     localStorage.setItem('matita_favs', JSON.stringify(favorites));
   }, [favorites]);
 
+  useEffect(() => {
+    localStorage.setItem('matita_cart', JSON.stringify(cart));
+  }, [cart]);
+
   const addToCart = (item: CartItem) => setCart(prev => [...prev, item]);
   const removeFromCart = (index: number) => setCart(prev => prev.filter((_, i) => i !== index));
+
+  const showToast = useCallback((title: string, description: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts(prev => [...prev, { id, title, description, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 4000);
+  }, []);
 
   const toggleFavorite = (id: string) => {
     setFavorites(prev => 
@@ -161,7 +196,7 @@ const App: React.FC = () => {
           <span className="text-6xl animate-pulse">✏️</span>
         </div>
         <div className="text-center">
-          <h2 className="text-5xl font-logo text-[#f6a118] mb-2">Matita</h2>
+          <h2 className="text-5xl font-logo text-[#f6a118] mb-2 text-transform: uppercase">MATITA</h2>
           <div className="flex gap-1 justify-center">
              <div className="w-2 h-2 bg-[#f6a118] rounded-full animate-bounce delay-100"></div>
              <div className="w-2 h-2 bg-[#ea7e9c] rounded-full animate-bounce delay-200"></div>
@@ -175,8 +210,37 @@ const App: React.FC = () => {
   return (
     <AppContext.Provider value={{ 
       user, setUser, cart, addToCart, removeFromCart, clearCart, 
-      favorites, toggleFavorite, logoUrl, setLogoUrl, supabase
+      favorites, toggleFavorite, logoUrl, setLogoUrl, supabase,
+      showToast
     }}>
+      {/* CONTENEDOR DE TOASTS FLOTANTES */}
+      <div className="fixed top-5 right-5 z-[9999] flex flex-col gap-3 max-w-sm w-full pointer-events-none font-matita">
+        {toasts.map(toast => {
+          const bgClass = toast.type === 'success' ? 'bg-[#f0fdf4] border-[#86efac] text-green-800 shadow-green-100' :
+                          toast.type === 'error' ? 'bg-[#fef2f2] border-[#fca5a5] text-red-800 shadow-red-100' :
+                          'bg-[#fdfaf6] border-[#fadb31] text-gray-800 shadow-orange-100';
+          const icon = toast.type === 'success' ? '🌸' : toast.type === 'error' ? '❌' : '✨';
+          return (
+            <div 
+              key={toast.id} 
+              className={`p-5 rounded-2xl border-4 shadow-xl flex gap-3 items-start pointer-events-auto animate-fadeIn ${bgClass} transition-all duration-300 transform hover:scale-102`}
+            >
+              <span className="text-2xl mt-0.5">{icon}</span>
+              <div className="flex-grow">
+                <h4 className="font-black text-sm uppercase tracking-tight">{toast.title}</h4>
+                <p className="text-xs font-bold opacity-80 mt-1 leading-snug">{toast.description}</p>
+              </div>
+              <button 
+                onClick={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
+                className="text-gray-400 hover:text-gray-600 font-black text-sm"
+              >
+                &times;
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
       <HashRouter>
         <Routes>
           {!user ? (
@@ -186,10 +250,10 @@ const App: React.FC = () => {
               <Route index element={<Navigate to="/catalog" />} />
               <Route path="catalog" element={<Catalog category="Catalog" />} />
               <Route path="escolar" element={<Catalog category="Escolar" />} />
-              <Route path="regalaria" element={<Catalog category="Regalaría" />} />
+              <Route path="otros" element={<Catalog category="Otros" />} />
               <Route path="oficina" element={<Catalog category="Oficina" />} />
               <Route path="tecnologia" element={<Catalog category="Tecnología" />} />
-              <Route path="novelties" element={<Catalog category="Novedades" />} />
+              <Route path="novedades" element={<Catalog category="Novedades" />} />
               <Route path="ofertas" element={<Catalog category="Ofertas" />} />
               <Route path="favorites" element={<Catalog category="Favorites" />} />
               <Route path="club" element={<ClubView />} />
@@ -205,4 +269,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-

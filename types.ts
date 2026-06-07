@@ -1,5 +1,5 @@
 
-export type Category = 'Escolar' | 'Regalaría' | 'Oficina' | 'Tecnología' | 'Novedades' | 'Ofertas';
+export type Category = 'Escolar' | 'Otros' | 'Oficina' | 'Tecnología' | 'Novedades' | 'Ofertas';
 
 export interface ColorStock {
   color: string;
